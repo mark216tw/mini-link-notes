@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 108 108" role="img" aria-labelledby="title desc">
+  <title id="title">App icon concept A - Link note</title>
+  <desc id="desc">A cream note card with a yellow bookmark and a coral-yellow chain badge on a deep teal gradient background.</desc>
+  <defs>
+    <linearGradient id="bgA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0A5750"/>
+      <stop offset="0.55" stop-color="#0F766E"/>
+      <stop offset="1" stop-color="#18A596"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0.5" cy="0.42" r="0.62">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="108" height="108" fill="url(#bgA)"/>
+  <rect width="108" height="108" fill="url(#glowA)"/>
+
+  <g>
+    <circle cx="54" cy="54" r="36" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2"/>
+    <circle cx="12" cy="15" r="3.2" fill="#FFC93C"/>
+    <circle cx="96" cy="19" r="4" fill="#6FD8C8" opacity="0.95"/>
+    <circle cx="15" cy="91" r="4.2" fill="#FF8A65"/>
+    <circle cx="93" cy="94" r="2.6" fill="#FFE9A8"/>
+    <path d="M90 7 L91.7 11.3 L96 13 L91.7 14.7 L90 19 L88.3 14.7 L84 13 L88.3 11.3 Z" fill="#FFE9A8" opacity="0.9"/>
+    <path d="M18 72 L19.3 75.7 L23 77 L19.3 78.3 L18 82 L16.7 78.3 L13 77 L16.7 75.7 Z" fill="#FFFFFF" opacity="0.35"/>
+  </g>
+
+  <g transform="translate(54 54) scale(1.06) translate(-54 -54)">
+  <g transform="rotate(-5 54 54)">
+    <rect x="35.5" y="33" width="40" height="46" rx="9" fill="#063B36" opacity="0.45"/>
+    <rect x="34" y="31" width="40" height="46" rx="9" fill="#FFF8E7" stroke="#123B36" stroke-width="5"/>
+
+    <g stroke="#0F766E" stroke-width="3.6" stroke-linecap="round">
+      <path d="M42 48 H61"/>
+      <path d="M42 56 H56"/>
+      <path d="M42 64 H57"/>
+    </g>
+
+    <path d="M40 31 H51 V44 L45.5 40.5 L40 44 Z" fill="#FFC93C" stroke="#123B36" stroke-width="4" stroke-linejoin="round"/>
+
+    <g transform="translate(-1 -4) rotate(35 70 70)">
+      <rect x="60" y="64" width="10" height="7" rx="3.5" fill="none" stroke="#123B36" stroke-width="7.5"/>
+      <rect x="60" y="64" width="10" height="7" rx="3.5" fill="none" stroke="#FF8A65" stroke-width="4"/>
+      <rect x="68" y="68" width="10" height="7" rx="3.5" fill="none" stroke="#123B36" stroke-width="7.5"/>
+      <rect x="68" y="68" width="10" height="7" rx="3.5" fill="none" stroke="#FFC93C" stroke-width="4"/>
+    </g>
+
+    <path d="M78 30.5 L79.3 33.7 L82.5 35 L79.3 36.3 L78 39.5 L76.7 36.3 L73.5 35 L76.7 33.7 Z" fill="#FFE9A8" stroke="#123B36" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="31" cy="74" r="2.2" fill="#FFC93C" stroke="#123B36" stroke-width="1.2"/>
+  </g>
+  </g>
+</svg>

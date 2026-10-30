@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mini網頁筆記 — App 圖示設計預覽</title>
+<style>
+  :root {
+    --bg: #081b19;
+    --panel: rgba(15, 43, 40, 0.82);
+    --line: #1f4a45;
+    --text: #edf7f4;
+    --muted: #9fc2bc;
+    --yellow: #ffc93c;
+    --coral: #ff8a65;
+    --mint: #6fd8c8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 32px 72px;
+    color: var(--text);
+    background: radial-gradient(circle at 28% -10%, #15443f 0, #081b19 55%) fixed;
+    font-family: "Segoe UI", "Microsoft JhengHei", system-ui, sans-serif;
+  }
+  header { max-width: 1180px; margin: 0 auto 28px; }
+  h1 { margin: 0 0 10px; font-size: 28px; letter-spacing: 0.02em; }
+  .subtitle { margin: 0; color: var(--muted); line-height: 1.7; font-size: 14px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 7px 13px; font-size: 12.5px; color: var(--muted);
+    background: rgba(255,255,255,0.03);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .toolbar {
+    max-width: 1180px; margin: 0 auto 28px;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 14px 18px; border: 1px solid var(--line);
+    border-radius: 16px; background: var(--panel);
+  }
+  .toggle { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; }
+  .toggle input { width: 17px; height: 17px; accent-color: var(--yellow); cursor: pointer; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; color: var(--muted); font-size: 12.5px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .line { width: 22px; height: 0; border-top: 2px dashed currentColor; }
+  .legend .crop { color: var(--yellow); }
+  .legend .safe { color: var(--mint); }
+  .legend .core { color: var(--coral); }
+
+  .concept {
+    max-width: 1180px; margin: 0 auto 36px;
+    border: 1px solid var(--line); border-radius: 26px;
+    background: var(--panel); padding: 28px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+  }
+  .concept-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-bottom: 22px; }
+  .concept-head h2 { margin: 0; font-size: 21px; }
+  .concept-head p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .showcase { display: grid; grid-template-columns: minmax(260px, 420px) 1fr; gap: 34px; align-items: start; }
+  .art {
+    position: relative; width: 100%; aspect-ratio: 1 / 1;
+    border-radius: 30px; overflow: hidden;
+    box-shadow: 0 18px 34px rgba(0,0,0,0.32);
+  }
+  .art img { display: block; width: 100%; height: 100%; }
+  .guide { display: none; position: absolute; pointer-events: none; border-radius: 50%; }
+  body.show-guides .guide { display: block; }
+  .guide.crop { inset: 16.6667%; border: 2px dashed var(--yellow); border-radius: 0; box-shadow: 0 0 0 9999px rgba(0,0,0,0.08); }
+  .guide.safe { inset: 19.4444%; border: 2px dashed var(--mint); }
+  .guide.core { inset: 24.0741%; border: 2px dashed var(--coral); border-radius: 18%; }
+  .side { display: flex; flex-direction: column; gap: 26px; }
+  .block-title { margin: 0 0 12px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+  .masks { display: flex; flex-wrap: wrap; gap: 22px; }
+  .mask-item { text-align: center; color: var(--muted); font-size: 12.5px; }
+  .mask { width: 156px; height: 156px; overflow: hidden; box-shadow: 0 10px 22px rgba(0,0,0,0.26); }
+  .mask img { width: 100%; height: 100%; display: block; }
+  .mask.circle { border-radius: 50%; }
+  .mask.squircle { border-radius: 24%; }
+  .mask.rounded { border-radius: 28%; }
+  .mask-item span { display: block; margin-top: 9px; }
+
+  .size-grid { display: flex; flex-wrap: wrap; gap: 14px; }
+  .size-box {
+    display: flex; align-items: center; justify-content: center;
+    width: 116px; height: 116px; border-radius: 18px; border: 1px solid var(--line);
+  }
+  .size-box.light { background: #fafdfc; }
+  .size-box.dark { background: #101413; }
+  .size-box img { display: block; border-radius: 22%; }
+  .size-label { margin-top: 7px; text-align: center; color: var(--muted); font-size: 12px; }
+  .size-cell { display: flex; flex-direction: column; }
+
+  .notes { color: var(--muted); font-size: 12.5px; line-height: 1.8; margin: 22px 0 0; }
+  .notes strong { color: var(--text); font-weight: 600; }
+  @media (max-width: 860px) {
+    body { padding: 28px 18px 56px; }
+    .concept { padding: 20px; }
+    .showcase { grid-template-columns: 1fr; }
+    .art { max-width: 420px; }
+    .mask { width: 128px; height: 128px; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>mini網頁筆記 — App 圖示設計預覽</h1>
+    <p class="subtitle">
+      三個「筆記＋鏈結」版本，皆為彩色、活潑、友善的粗線條卡通貼紙風格，不使用笑臉。<br>
+      畫布 108 × 108 dp；可見裁切 72 × 72 dp；安全區 66 × 66 dp；核心圖案約 56 × 56 dp（安全區的 85%）。
+    </p>
+    <div class="meta">
+      <span class="pill"><span class="dot" style="background:#0f766e"></span>深青品牌漸層</span>
+      <span class="pill"><span class="dot" style="background:#fff8e7"></span>奶油白筆記</span>
+      <span class="pill"><span class="dot" style="background:#ffc93c"></span>亮黃書籤</span>
+      <span class="pill"><span class="dot" style="background:#ff8a65"></span>珊瑚橘鏈結</span>
+      <span class="pill"><span class="dot" style="background:#123b36"></span>深青粗外框</span>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <label class="toggle">
+      <input type="checkbox" id="guideToggle">
+      顯示 108／72／66／56 輔助框
+    </label>
+    <div class="legend">
+      <span class="crop"><span class="line"></span>72 dp 外框裁切</span>
+      <span class="safe"><span class="line"></span>66 dp 安全區</span>
+      <span class="core"><span class="line"></span>56 dp 核心範圍</span>
+    </div>
+  </div>
+
+  <section class="concept">
+    <div class="concept-head">
+      <h2>A｜連結筆記</h2>
+      <p>單張微傾筆記卡、左上黃色書籤、右下珊瑚橘／亮黃鏈結徽章，最簡潔清楚。</p>
+    </div>
+    <div class="showcase">
+      <div class="art">
+        <img src="concept-a.svg" alt="圖示版本 A：連結筆記">
+        <div class="guide crop"></div>
+        <div class="guide safe"></div>
+        <div class="guide core"></div>
+      </div>
+      <div class="side">
+        <div>
+          <p class="block-title">遮罩測試</p>
+          <div class="masks">
+            <div class="mask-item"><div class="mask circle"><img src="concept-a.svg" alt=""></div><span>圓形</span></div>
+            <div class="mask-item"><div class="mask squircle"><img src="concept-a.svg" alt=""></div><span>Squircle</span></div>
+            <div class="mask-item"><div class="mask rounded"><img src="concept-a.svg" alt=""></div><span>圓角方形</span></div>
+          </div>
+        </div>
+        <div>
+          <p class="block-title">實際尺寸（淺色／深色背景）</p>
+          <div class="size-grid">
+            <div class="size-cell"><div class="size-box light"><img src="concept-a.svg" alt="" style="width:96px;height:96px"></div><span class="size-label">96 dp</span></div>
+            <div class="size-cell"><div class="size-box light"><img src="concept-a.svg" alt="" style="width:72px;height:72px"></div><span class="size-label">72 dp</span></div>
+            <div class="size-cell"><div class="size-box light"><img src="concept-a.svg" alt="" style="width:48px;height:48px"></div><span class="size-label">48 dp</span></div>
+            <div class="size-cell"><div class="size-box dark"><img src="concept-a.svg" alt="" style="width:48px;height:48px"></div><span class="size-label">48 dp</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="concept">
+    <div class="concept-head">
+      <h2>B｜雙卡層次</h2>
+      <p>珊瑚橘與奶油白兩張卡片疊放，底部中央以鏈結扣住，層次與動態感最強。</p>
+    </div>
+    <div class="showcase">
+      <div class="art">
+        <img src="concept-b.svg" alt="圖示版本 B：雙卡層次">
+        <div class="guide crop"></div>
+        <div class="guide safe"></div>
+        <div class="guide core"></div>
+      </div>
+      <div class="side">
+        <div>
+          <p class="block-title">遮罩測試</p>
+          <div class="masks">
+            <div class="mask-item"><div class="mask circle"><img src="concept-b.svg" alt=""></div><span>圓形</span></div>
+            <div class="mask-item"><div class="mask squircle"><img src="concept-b.svg" alt=""></div><span>Squircle</span></div>
+            <div class="mask-item"><div class="mask rounded"><img src="concept-b.svg" alt=""></div><span>圓角方形</span></div>
+          </div>
+        </div>
+        <div>
+          <p class="block-title">實際尺寸（淺色／深色背景）</p>
+          <div class="size-grid">
+            <div class="size-cell"><div class="size-box light"><img src="concept-b.svg" alt="" style="width:96px;height:96px"></div><span class="size-label">96 dp</span></div>
+            <div class="size-cell"><div class="size-box light"><img src="concept-b.svg" alt="" style="width:72px;height:72px"></div><span class="size-label">72 dp</span></div>
+            <div class="size-cell"><div class="size-box light"><img src="concept-b.svg" alt="" style="width:48px;height:48px"></div><span class="size-label">48 dp</span></div>
+            <div class="size-cell"><div class="size-box dark"><img src="concept-b.svg" alt="" style="width:48px;height:48px"></div><span class="size-label">48 dp</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="concept">
+    <div class="concept-head">
+      <h2>C｜鑰匙圈筆記</h2>
+      <p>筆記卡以頂部大鏈環吊掛，下方垂墜黃色書籤；造型最像可愛吊飾。</p>
+    </div>
+    <div class="showcase">
+      <div class="art">
+        <img src="concept-c.svg" alt="圖示版本 C：鑰匙圈筆記">
+        <div class="guide crop"></div>
+        <div class="guide safe"></div>
+        <div class="guide core"></div>
+      </div>
+      <div class="side">
+        <div>
+          <p class="block-title">遮罩測試</p>
+          <div class="masks">
+            <div class="mask-item"><div class="mask circle"><img src="concept-c.svg" alt=""></div><span>圓形</span></div>
+            <div class="mask-item"><div class="mask squircle"><img src="concept-c.svg" alt=""></div><span>Squircle</span></div>
+            <div class="mask-item"><div class="mask rounded"><img src="concept-c.svg" alt=""></div><span>圓角方形</span></div>
+          </div>
+        </div>
+        <div>
+          <p class="block-title">實際尺寸（淺色／深色背景）</p>
+          <div class="size-grid">
+            <div class="size-cell"><div class="size-box light"><img src="concept-c.svg" alt="" style="width:96px;height:96px"></div><span class="size-label">96 dp</span></div>
+            <div class="size-cell"><div class="size-box light"><img src="concept-c.svg" alt="" style="width:72px;height:72px"></div><span class="size-label">72 dp</span></div>
+            <div class="size-cell"><div class="size-box light"><img src="concept-c.svg" alt="" style="width:48px;height:48px"></div><span class="size-label">48 dp</span></div>
+            <div class="size-cell"><div class="size-box dark"><img src="concept-c.svg" alt="" style="width:48px;height:48px"></div><span class="size-label">48 dp</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="notes">
+    <strong>備註：</strong>預覽頁的輔助框為設計檢查用，不會出現在正式圖示。<br>
+    正式上架前會再轉成 Android Adaptive Icon 的 Vector Drawable，並附上 Android 13 主題圖示（monochrome）版本。
+  </p>
+
+<script>
+  const toggle = document.getElementById('guideToggle');
+  toggle.addEventListener('change', () => {
+    document.body.classList.toggle('show-guides', toggle.checked);
+  });
+</script>
+</body>
+</html>
