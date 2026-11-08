@@ -4,33 +4,111 @@
 
 ---
 
-## 2026-10-30 - v1.0.0-prerelease（versionCode 7，首個公開測試版）
+## 2026-11-08 - v1.5.0（versionCode 10，圖片放大檢視）
 
 ### 目標
-補齊專案文件、採用 MIT License，建立 GitHub 公開儲存庫，並產出可公開測試的 `app-prerelease.apk`（R8 壓縮、Debug 金鑰簽署、Build Type `prerelease`）。
+讓圖片筆記可以在編輯頁點擊圖片後全螢幕放大查看細節，支援縮放、平移與關閉，不需額外依賴。
 
 ### 變更
-- 新增 `LICENSE`：MIT License，著作權人 mark216tw。
-- 改寫 `README.md`：專案說明、功能、文件索引、建置、隱私、授權與測試版下載資訊。
-- 新增 `docs/USER_GUIDE.md`：安裝、分享、新增、搜尋、標籤、回收筒、設定、備份與 FAQ。
-- 新增 `docs/ARCHITECTURE.md`：技術基線、分層架構、套件、資料模型、資料流、備份格式、執行緒與限制。
-- 新增 `docs/DESIGN.md`：產品目標、資訊架構、畫面設計、狀態模型、關鍵流程與設計取捨。
-- 新增 `docs/BUILD.md`：環境、Build Type、R8、簽署、GitHub Pre-release 流程與疑難排解。
-- 新增 `docs/PRIVACY.md`：權限、網路行為、系統備份、資料刪除與聯絡方式。
-- `app/build.gradle.kts`：versionCode 7、versionName 1.0.0；`prerelease` 後綴產生 `1.0.0-prerelease`。
-- 更新 `CHANGELOG.md`、`RELEASE_NOTES.md`：標示首個公開 Pre-release 與測試注意事項。
-- 建立 GitHub 公開儲存庫 `mark216tw/mini-link-notes`，提交文件與原始碼。
-- 建置 `assemblePrerelease`，將 `app-prerelease.apk` 上傳至 GitHub Pre-release `v1.0.0-prerelease`。
+- 新增 `ui/components/ImageZoomViewer.kt`：`ImageZoomDialog` 全螢幕檢視器，支援雙指縮放（1x～5x）、雙擊放大／復原、放大後拖曳平移，右上角關閉與系統返回鍵關閉。
+- `data/ImageStorage.kt`：抽出 `decodeScaled`，套用 EXIF 旋轉並以 `inSampleSize` 限制解碼尺寸；新增 `fullImageBitmap` 供檢視器載入原圖（長邊上限 2048px，避免 OOM）。
+- `ui/editor/EditorScreen.kt`：圖片預覽改為可點擊，點擊後開啟 `ImageZoomDialog`。
+- `ui/theme/Color.kt`：新增檢視器遮罩與內容色 `ImageViewerScrim`、`ImageViewerContent`。
+- `res/values/strings.xml`：新增 `image_viewer_open`、`image_viewer_close`、`image_viewer_failed`。
+- 版本升為 1.5.0（versionCode 10）。
 
 ### 問題與解法
-- 內部開發版本已到 1.2.0，但本次要求公開測試版標示為 1.0.0-prerelease → 將 `versionName` 設為 1.0.0、versionCode 遞增為 7，由 Build Type 自動加上 `-prerelease`；CHANGELOG 保留內部開發紀錄並加註說明。
-- GitHub 的 Pre-release 不會出現在「Latest」標籤 → Release 標題與說明明確標示 Pre-release，並在 README 直接連結 tag。
-- APK 被 `.gitignore` 排除 → 只上傳到 GitHub Release，不提交進儲存庫，符合版本控制慣例。
+- 原圖可能很大（匯入上限 25MB）→ 解碼前先讀取尺寸並以 2 的倍數取樣，長邊限制在 2048px，載入時顯示進度。
+- 縮放後圖片可能被拖出畫面 → 依容器尺寸與 `ContentScale.Fit` 計算最大位移並夾住 `translationX/Y`。
+- 檢視器需要同時處理雙擊與縮放手勢 → 以獨立的 `pointerInput` 偵測雙擊，再搭配 `transformable` 處理縮放與平移。
 
 ### 待辦／已知限制
-- 尚未在實機完整驗證所有品牌裝置的安裝、分享選單與圖示遮罩。
-- `prerelease` 使用 Debug 金鑰，不可用於正式上架；正式版需建立 release keystore。
-- 尚未加入 UI 自動化測試與 Room migration 測試。
+- 回收筒與筆記清單的圖片依需求維持不支援點擊放大；清單點圖片仍開啟編輯頁。
+- 尚未在實機驗證高解析度圖片、摺疊機與平板上的縮放體驗。
+
+---
+
+## 2026-11-08 - v1.4.1（versionCode 9，標籤配色與小工具樣式對話框）
+
+### 目標
+讓標籤在筆記清單中更醒目，將標籤移到標題下方，並把小工具的文字樣式控制收進彈出視窗，減少設定頁佔用的空間。
+
+### 變更
+- `ui/theme/Color.kt`：12 組 `TagColors` 改為高飽和色盤，淺色模式使用較深的 600～800 色階維持可讀性，深色模式使用較亮的 300～400 色階。
+- `ui/notes/NotesScreen.kt`：`TagPill` 底色透明度由 0.16 提高到 0.20；`NoteCard` 的標籤區塊移到標題正下方，順序改為標題 → 標籤 → 網域 → 摘要 → 時間。
+- `widget/configure/LinkNoteWidgetConfigureScreen.kt`：原本內嵌的文字樣式區塊改為全寬「小工具文字樣式」按鈕，點擊後以 `AlertDialog` 顯示文字顏色、字型大小與即時預覽，內容可垂直捲動。
+- `res/values/strings.xml`：`widget_style_title` 改為「小工具文字樣式」。
+- 版本升為 1.4.1（versionCode 9）。
+
+### 問題與解法
+- 對話框內容可能因字型放大或圖片預覽而超出高度 → 以 `verticalScroll` 包住內容，避免元件被截斷。
+
+### 待辦／已知限制
+- 尚未在實機確認各螢幕尺寸下對話框的捲動與 Slider 操作體驗。
+- 標籤配色僅以亮度與可讀性原則調整，尚未執行無障礙對比度檢測。
+
+---
+
+## 2026-11-08 - v1.4.0（versionCode 8，圖片筆記與 Widget 自訂）
+
+### 目標
+修正 Widget 首次設定與重新選取不更新、恢復標籤新增入口，加入每個 Widget 獨立的文字色彩與 50%～500% 字型縮放，並新增單張圖片筆記的完整支援。
+
+### 變更
+- Widget 改為在 Glance composition 內以 `currentState<Preferences>()` 觀察設定、以 Room Flow 觀察筆記，修正首次設定與重新選取不更新；加入 loading／unconfigured／missing／ready 狀態。
+- 每個 Widget instance 可設定文字色盤（Auto、黑、白、深灰、淺灰、藍、青綠、黃）與 50%～500% 字型（每 10% 一級），設定頁提供即時預覽。
+- 標籤管理恢復新增 FAB，並補齊重複名稱與一般儲存失敗的錯誤處理。
+- 新增 `NoteType.IMAGE`、圖片欄位與 Room schema 3；`ImageStorage` 以私有檔案保存原圖、產生 512px WebP 縮圖、支援 SHA-256、EXIF 旋轉與孤兒清理。
+- 編輯器新增圖片類型、Photo Picker、預覽、替換與移除；主清單、回收筒、Widget 與 Widget 設定頁顯示縮圖。
+- 新增圖片分享輸出（FileProvider）與 `ACTION_SEND image/*` 匯入。
+- 手動備份改為 ZIP（manifest v2 + images），支援舊版 JSON 匯入、路徑與大小驗證、SHA-256 驗證與 REPLACE 舊圖清理。
+- 版本升為 1.4.0（versionCode 8）。
+
+### 問題與解法
+- Widget 的 `provideGlance()` 在 `provideContent()` 外只讀一次 state 與 Room，活躍 session 會持續捕獲舊值 → 改用 composition 內的可觀察來源。
+- Glance 圖片載入沒有可靠的 suspend/effect 保證 → 在背景 composition 內使用已產生的縮圖 Bitmap，避免阻塞 UI 與 Binder 過大。
+- Coil 3.6.3 需要 compileSdk 37／AGP 9，與專案基線衝突 → 不升級 SDK/AGP，改用專案內縮圖與 `BitmapFactory` 載入。
+- 圖片檔案與 Room transaction 無法一起 rollback → 先寫入檔案，DB 失敗時刪除新檔；換圖成功後才刪舊檔；啟動時清理逾時孤兒。
+
+### 待辦／已知限制
+- 需在實機 Launcher 驗證多 Widget instance、重新設定與圖片縮圖。
+- 圖片匯入上限 25MB，ZIP 匯入上限 400MB；尚未提供裁切或壓縮選項。
+- 未新增 instrumentation／UI 自動化測試；目前以編譯、單元測試與 Lint 驗證。
+
+---
+
+## 2026-11-08 - v1.3.0（versionCode 7，桌面小工具）
+
+### 目標
+新增桌面小工具，讓使用者為每個小工具選擇一則筆記，顯示標題、連結與內容，並可點擊連結以預設瀏覽器開啟。
+
+### 變更
+- `gradle/libs.versions.toml`、`app/build.gradle.kts`：新增 Glance 1.2.0；版本升為 1.3.0（versionCode 7）。
+- `data/NotesDao.kt`、`data/NotesRepository.kt`：新增 `getActiveNoteEntity` 與 `observeActiveNoteEntities`，只取未刪除資料。
+- `widget/LinkNoteWidget.kt`：Glance 小工具，讀取每個 instance 的 note ID，顯示標題、網址與內容；純文字資料不顯示連結；點擊網址以瀏覽器開啟，點擊其他區域開啟該筆記編輯頁；資料失效時提供重新選擇。
+- `MainActivity.kt`、`ui/MiniLinkNotesRoot.kt`：新增 `EXTRA_NOTE_ID` 啟動參數，小工具可導覽到指定筆記的編輯頁，並避免轉螢幕時重複導覽。
+- `widget/LinkNoteWidgetReceiver.kt`：接收更新，移除小工具時清除選取狀態。
+- `widget/configure/`：設定 Activity、ViewModel 與 Compose 選單，支援搜尋、單選與重新設定。
+- `MiniLinkNotesApp.kt`：監聽未刪除筆記資料流，資料變更時更新所有小工具。
+- `AndroidManifest.xml`、`res/xml/link_note_widget_info.xml`、`res/layout/link_note_widget_loading.xml`、`strings.xml`、`colors.xml`、`values-night/colors.xml`：小工具宣告與資源。
+- 更新 README、CHANGELOG、RELEASE_NOTES 與 About 開源元件字串。
+
+### 問題與解法
+- Glance 1.2.0 的 `provideContent`、`updateAll` 是擴充函式，需個別 import。
+- `updateAppWidgetState` 只有 `(context, glanceId, updateState)` 多載；誤加 `stateDefinition` 會編譯失敗。
+- `ColorProvider(@ColorRes)` 在 1.2.0 標記為 `@RestrictTo(LIBRARY_GROUP)`，Lint 會報 RestrictedApi。
+- Glance 的 `TextDecoration` 位於 `androidx.glance.text`，不是 Compose UI 的型別。
+- `clickable` 需從 `androidx.glance.action` 匯入。
+
+### 修正（實機回饋）
+- 小工具沒有底色、文字不清楚：Glance 轉換 RemoteViews 時只接受 `FixedColorProvider`、`ResourceColorProvider`、`DayNightColorProvider`，自訂 `ColorProvider` 會拋出 `Unexpected text/background color`，導致小工具無法正常顯示。改用 `androidx.glance.color.ColorProvider(day, night)` 與 `androidx.glance.appwidget.background(day, night)`，並補上 `appWidgetBackground()` 以支援 Android 12+ 圓角。
+- 設定頁下方按鈕被導覽列遮住：`bottomBar` 加上 `navigationBarsPadding()` 與 `imePadding()`。
+- 點擊小工具開啟該筆記編輯頁：小工具根節點加上 `clickable`，以 `EXTRA_NOTE_ID` 啟動 `MainActivity`；網址文字維持以瀏覽器開啟。
+
+### 待辦／已知限制
+- 尚未在實機驗證各廠牌 launcher 的小工具尺寸、圓角與重新設定流程。
+- 未新增小工具 UI 自動化測試；目前以編譯、單元測試與 Lint 驗證。
+- 小工具使用固定日夜配色，未跟隨 App 的動態色彩設定。
 
 ---
 

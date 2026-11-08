@@ -26,11 +26,29 @@ interface NotesDao {
     @Query("SELECT * FROM notes WHERE id = :id LIMIT 1")
     suspend fun getNoteEntity(id: Long): NoteEntity?
 
+    @Query("SELECT * FROM notes WHERE id = :id AND deletedAt IS NULL LIMIT 1")
+    suspend fun getActiveNoteEntity(id: Long): NoteEntity?
+
+    @Query("SELECT * FROM notes WHERE deletedAt IS NULL ORDER BY createdAt DESC")
+    fun observeActiveNoteEntities(): Flow<List<NoteEntity>>
+
     @Query("SELECT url FROM notes WHERE deletedAt IS NULL AND url IS NOT NULL")
     suspend fun getActiveUrls(): List<String>
 
     @Query("SELECT content FROM notes WHERE deletedAt IS NULL AND type = :type AND content IS NOT NULL")
     suspend fun getActiveContents(type: NoteType): List<String>
+
+    @Query("SELECT imageSha256 FROM notes WHERE deletedAt IS NULL AND imageSha256 IS NOT NULL")
+    suspend fun getActiveImageHashes(): List<String>
+
+    @Query("SELECT imageFileName FROM notes WHERE imageFileName IS NOT NULL")
+    suspend fun getAllImageFileNames(): List<String>
+
+    @Query("SELECT imageFileName FROM notes WHERE deletedAt IS NOT NULL AND imageFileName IS NOT NULL")
+    suspend fun getTrashImageFileNames(): List<String>
+
+    @Query("SELECT imageFileName FROM notes WHERE deletedAt IS NOT NULL AND deletedAt < :before AND imageFileName IS NOT NULL")
+    suspend fun getExpiredTrashImageFileNames(before: Long): List<String>
 
     @Transaction
     @Query("SELECT * FROM notes WHERE deletedAt IS NULL ORDER BY createdAt DESC")

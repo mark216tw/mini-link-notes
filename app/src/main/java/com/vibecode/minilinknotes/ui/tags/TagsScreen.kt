@@ -107,6 +107,19 @@ fun TagsScreen(
                 },
             )
         },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    editingTag = null
+                    showEditor = true
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Add,
+                    contentDescription = stringResource(R.string.tag_add),
+                )
+            }
+        },
     ) { padding ->
         if (tags.isEmpty()) {
             Column(
@@ -474,7 +487,7 @@ private fun TagEditorDialog(
                             errorRes = if (viewModel.isDuplicateTagError(result.exceptionOrNull())) {
                                 R.string.tag_name_duplicate
                             } else {
-                                R.string.tag_name_required
+                                R.string.tag_save_failed
                             }
                         }
                     }

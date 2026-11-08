@@ -13,6 +13,7 @@ import androidx.room.TypeConverter
 enum class NoteType {
     LINK,
     TEXT,
+    IMAGE,
 }
 
 enum class TitleFetchState {
@@ -46,6 +47,7 @@ data class AppSettings(
     indices = [
         Index("deletedAt"),
         Index("createdAt"),
+        Index("imageSha256"),
     ],
 )
 data class NoteEntity(
@@ -54,6 +56,9 @@ data class NoteEntity(
     val title: String = "",
     val url: String? = null,
     val content: String? = null,
+    val imageFileName: String? = null,
+    val imageMimeType: String? = null,
+    val imageSha256: String? = null,
     val isRead: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,

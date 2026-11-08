@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Intent
 import android.text.format.DateUtils
+import androidx.core.content.FileProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -89,6 +90,8 @@ import com.vibecode.minilinknotes.data.NoteWithTags
 import com.vibecode.minilinknotes.data.SortField
 import com.vibecode.minilinknotes.data.TagEntity
 import com.vibecode.minilinknotes.data.TagWithNoteCount
+import com.vibecode.minilinknotes.data.ImageStorage
+import com.vibecode.minilinknotes.ui.components.NoteImage
 import com.vibecode.minilinknotes.ui.theme.tagColor
 import com.vibecode.minilinknotes.util.UrlUtils
 import kotlinx.coroutines.launch
@@ -98,6 +101,7 @@ import kotlinx.coroutines.launch
 fun NotesScreen(
     state: NotesUiState,
     viewModel: AppViewModel,
+    imageStorage: ImageStorage,
     onAddNote: () -> Unit,
     onEditNote: (Long) -> Unit,
     onOpenLink: (Long, String) -> Unit,
@@ -123,6 +127,30 @@ fun NotesScreen(
             )
         } catch (_: ActivityNotFoundException) {
             viewModel.showMessage(R.string.share_failed)
+        }
+    }
+    val shareImage = { fileName: String?, mimeType: String? ->
+        val file = viewModel.imageFile(fileName)
+        if (file == null) {
+            viewModel.showMessage(R.string.share_failed)
+        } else {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType ?: "image/*"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            try {
+                context.startActivity(
+                    Intent.createChooser(send, context.getString(R.string.share_chooser_title)),
+                )
+            } catch (_: ActivityNotFoundException) {
+                viewModel.showMessage(R.string.share_failed)
+            }
         }
     }
 
@@ -325,6 +353,7 @@ fun NotesScreen(
                             NoteCard(
                                 noteWithTags = noteWithTags,
                                 dark = dark,
+                                imageStorage = imageStorage,
                                 onOpen = {
                                     val url = noteWithTags.note.url
                                     if (noteWithTags.note.type == NoteType.LINK && url != null) {
@@ -352,6 +381,7 @@ fun NotesScreen(
                                     }
                                 },
                                 onShare = shareText,
+                                onShareImage = shareImage,
                                 onDelete = { viewModel.deleteNote(noteWithTags.note.id) },
                                 onTagClick = viewModel::toggleTagFilter,
                             )
@@ -514,20 +544,29 @@ private fun EmptyNotes(
 private fun NoteCard(
     noteWithTags: NoteWithTags,
     dark: Boolean,
+    imageStorage: ImageStorage,
     onOpen: () -> Unit,
     onToggleRead: () -> Unit,
     onEdit: () -> Unit,
     onOpenLink: () -> Unit,
     onCopy: (String) -> Unit,
     onShare: (String) -> Unit,
+    onShareImage: (String?, String?) -> Unit,
     onDelete: () -> Unit,
     onTagClick: (Long) -> Unit,
 ) {
     val note = noteWithTags.note
     var menuExpanded by remember { mutableStateOf(false) }
     val isLink = note.type == NoteType.LINK
+    val isImage = note.type == NoteType.IMAGE
     val title = note.title.ifBlank {
-        if (isLink) stringResource(R.string.note_untitled_link) else stringResource(R.string.note_untitled_text)
+        stringResource(
+            when (note.type) {
+                NoteType.LINK -> R.string.note_untitled_link
+                NoteType.TEXT -> R.string.note_untitled_text
+                NoteType.IMAGE -> R.string.note_untitled_image
+            },
+        )
     }
     val host = note.url?.let(UrlUtils::hostOf)
     val snippet = note.content?.trim()?.replace('\n', ' ')
@@ -573,6 +612,18 @@ private fun NoteCard(
                     .weight(1f)
                     .padding(vertical = 6.dp),
             ) {
+                if (isImage) {
+                    NoteImage(
+                        imageStorage = imageStorage,
+                        fileName = note.imageFileName,
+                        contentDescription = stringResource(R.string.note_type_image),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (isLink) {
                         Icon(
@@ -588,28 +639,6 @@ private fun NoteCard(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = if (note.isRead) FontWeight.Normal else FontWeight.SemiBold,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
-                if (isLink && host != null) {
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = host,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-
-                if (showSnippet) {
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = snippet!!,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = if (isLink) 2 else 3,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -636,6 +665,28 @@ private fun NoteCard(
                             )
                         }
                     }
+                }
+
+                if (isLink && host != null) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = host,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                if (showSnippet) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = snippet!!,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = if (isLink) 2 else 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
 
                 Spacer(Modifier.height(4.dp))
@@ -675,36 +726,49 @@ private fun NoteCard(
                             },
                         )
                     }
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                stringResource(
-                                    if (isLink) R.string.action_copy_url else R.string.action_copy_content,
-                                ),
-                            )
-                        },
-                        leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            val value = if (isLink) note.url else note.content
-                            if (value != null) onCopy(value)
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                stringResource(
-                                    if (isLink) R.string.action_share_url else R.string.action_share_content,
-                                ),
-                            )
-                        },
-                        leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            val value = if (isLink) note.url else note.content
-                            if (value != null) onShare(value)
-                        },
-                    )
+                    if (!isImage) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(
+                                        if (isLink) R.string.action_copy_url else R.string.action_copy_content,
+                                    ),
+                                )
+                            },
+                            leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                val value = if (isLink) note.url else note.content
+                                if (value != null) onCopy(value)
+                            },
+                        )
+                    }
+                    if (isImage) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.action_share_image)) },
+                            leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                onShareImage(note.imageFileName, note.imageMimeType)
+                            },
+                        )
+                    } else {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(
+                                        if (isLink) R.string.action_share_url else R.string.action_share_content,
+                                    ),
+                                )
+                            },
+                            leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                val value = if (isLink) note.url else note.content
+                                if (value != null) onShare(value)
+                            },
+                        )
+                    }
                     DropdownMenuItem(
                         text = {
                             Text(
@@ -736,7 +800,7 @@ private fun TagPill(tag: TagEntity, dark: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(color.copy(alpha = 0.16f), RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.20f), RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 6.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,

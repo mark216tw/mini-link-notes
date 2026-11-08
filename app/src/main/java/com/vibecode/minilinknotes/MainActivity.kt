@@ -2,12 +2,16 @@
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
@@ -20,10 +24,16 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: AppViewModel
     private var handledIntent: Intent? = null
+    private var noteLaunchHandled = false
+    private var pendingNoteId by mutableStateOf<Long?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        if (savedInstanceState != null) {
+            noteLaunchHandled = savedInstanceState.getBoolean(STATE_NOTE_LAUNCH_HANDLED)
+        }
 
         val container = (application as MiniLinkNotesApp).container
         viewModel = ViewModelProvider(
@@ -48,11 +58,15 @@ class MainActivity : ComponentActivity() {
                 MiniLinkNotesRoot(
                     viewModel = viewModel,
                     state = state,
+                    imageStorage = container.imageStorage,
+                    pendingNoteId = pendingNoteId,
+                    onPendingNoteHandled = { pendingNoteId = null },
                     onOpenLink = { _, url -> openLink(url) },
                 )
             }
         }
 
+        handlePendingNote(intent)
         if (savedInstanceState == null) {
             handleIncomingIntent(intent)
         }
@@ -61,15 +75,49 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        noteLaunchHandled = false
+        handlePendingNote(intent)
         handleIncomingIntent(intent)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_NOTE_LAUNCH_HANDLED, noteLaunchHandled)
+    }
+
+    private fun handlePendingNote(intent: Intent?) {
+        if (intent == null || noteLaunchHandled) return
+        val noteId = intent.getLongExtra(EXTRA_NOTE_ID, -1L)
+        if (noteId <= 0) return
+        noteLaunchHandled = true
+        pendingNoteId = noteId
     }
 
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent == null || intent === handledIntent) return
+
         if (intent.action != Intent.ACTION_SEND && intent.action != Intent.ACTION_PROCESS_TEXT) {
             return
         }
         handledIntent = intent
+
+        if (intent.action == Intent.ACTION_SEND && intent.isImageShare()) {
+            val stream = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+                ?: intent.clipData
+                    ?.takeIf { it.itemCount > 0 }
+                    ?.getItemAt(0)
+                    ?.uri
+            if (stream == null) {
+                viewModel.notifyEmptyShare()
+            } else {
+                viewModel.handleSharedImage(
+                    uri = stream,
+                    subject = intent.getStringExtra(Intent.EXTRA_SUBJECT),
+                    caption = intent.getStringExtra(Intent.EXTRA_TEXT),
+                )
+            }
+            return
+        }
 
         if (intent.action == Intent.ACTION_PROCESS_TEXT) {
             val text = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
@@ -95,6 +143,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun Intent.isImageShare(): Boolean {
+        if (type?.startsWith("image/") == true) return true
+        val clipType = clipData?.description?.getMimeType(0)
+        return clipType?.startsWith("image/") == true
+    }
+
     private fun openLink(url: String) {
         val intent = Intent(Intent.ACTION_VIEW, url.toUri())
             .addCategory(Intent.CATEGORY_BROWSABLE)
@@ -106,5 +160,9 @@ class MainActivity : ComponentActivity() {
             viewModel.showMessage(R.string.open_link_failed)
         }
     }
-}
 
+    companion object {
+        const val EXTRA_NOTE_ID = "com.vibecode.minilinknotes.extra.NOTE_ID"
+        private const val STATE_NOTE_LAUNCH_HANDLED = "note_launch_handled"
+    }
+}

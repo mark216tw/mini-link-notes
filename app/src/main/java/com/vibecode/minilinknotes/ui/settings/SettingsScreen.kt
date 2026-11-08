@@ -61,7 +61,7 @@ fun SettingsScreen(
     var replaceUri by remember { mutableStateOf<Uri?>(null) }
 
     val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json"),
+        contract = ActivityResultContracts.CreateDocument("application/zip"),
     ) { uri ->
         uri?.let(viewModel::export)
     }
@@ -161,7 +161,7 @@ fun SettingsScreen(
                 leadingContent = { Icon(Icons.Outlined.FileUpload, contentDescription = null) },
                 modifier = Modifier.clickable {
                     val name = "mini-link-notes-" +
-                        SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date()) + ".json"
+                        SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date()) + ".zip"
                     exportLauncher.launch(name)
                 },
             )

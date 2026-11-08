@@ -27,6 +27,7 @@ import com.vibecode.minilinknotes.AppViewModel
 import com.vibecode.minilinknotes.NotesUiState
 import com.vibecode.minilinknotes.R
 import com.vibecode.minilinknotes.SnackbarAction
+import com.vibecode.minilinknotes.data.ImageStorage
 import com.vibecode.minilinknotes.ui.about.AboutScreen
 import com.vibecode.minilinknotes.ui.editor.EditorScreen
 import com.vibecode.minilinknotes.ui.notes.NotesScreen
@@ -50,11 +51,29 @@ private object Routes {
 fun MiniLinkNotesRoot(
     viewModel: AppViewModel,
     state: NotesUiState,
+    imageStorage: ImageStorage,
+    pendingNoteId: Long?,
+    onPendingNoteHandled: () -> Unit,
     onOpenLink: (Long, String) -> Unit,
 ) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+
+    LaunchedEffect(pendingNoteId) {
+        val noteId = pendingNoteId ?: return@LaunchedEffect
+        val currentEntry = navController.currentBackStackEntry
+        val currentNoteId = currentEntry?.arguments?.getLong("noteId") ?: -1L
+        if (currentEntry?.destination?.route == Routes.EDITOR && currentNoteId == noteId) {
+            onPendingNoteHandled()
+            return@LaunchedEffect
+        }
+        navController.navigate(Routes.editor(noteId)) {
+            launchSingleTop = true
+            popUpTo(Routes.NOTES)
+        }
+        onPendingNoteHandled()
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -92,6 +111,7 @@ fun MiniLinkNotesRoot(
                 NotesScreen(
                     state = state,
                     viewModel = viewModel,
+                    imageStorage = imageStorage,
                     onAddNote = { navController.navigate(Routes.editor()) },
                     onEditNote = { noteId -> navController.navigate(Routes.editor(noteId)) },
                     onOpenLink = onOpenLink,
@@ -114,6 +134,7 @@ fun MiniLinkNotesRoot(
                     noteId = entry.arguments?.getLong("noteId") ?: -1L,
                     tags = state.tags,
                     viewModel = viewModel,
+                    imageStorage = imageStorage,
                     onBack = { navController.popBackStack() },
                     onManageTags = { navController.navigate(Routes.TAGS) },
                 )
@@ -131,6 +152,7 @@ fun MiniLinkNotesRoot(
                 TrashScreen(
                     notes = state.trash,
                     viewModel = viewModel,
+                    imageStorage = imageStorage,
                     onBack = { navController.popBackStack() },
                     onOpenLink = onOpenLink,
                 )

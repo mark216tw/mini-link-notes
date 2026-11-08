@@ -15,6 +15,7 @@ import com.vibecode.minilinknotes.data.NoteWithTags
 import com.vibecode.minilinknotes.data.NotesRepository
 import com.vibecode.minilinknotes.data.SettingsStore
 import com.vibecode.minilinknotes.data.SortField
+import com.vibecode.minilinknotes.data.StoredImage
 import com.vibecode.minilinknotes.data.TagEntity
 import com.vibecode.minilinknotes.data.TagWithNoteCount
 import com.vibecode.minilinknotes.data.backup.BackupException
@@ -195,6 +196,30 @@ class AppViewModel(
         emitEvent(SnackbarEvent(appContext.getString(R.string.share_empty)))
     }
 
+    fun handleSharedImage(uri: Uri, subject: String?, caption: String?) {
+        viewModelScope.launch {
+            runCatching {
+                val stored = repository.importImage(uri)
+                repository.createNote(
+                    NoteDraft(
+                        type = NoteType.IMAGE,
+                        title = subject.orEmpty(),
+                        url = null,
+                        content = caption?.trim()?.ifBlank { null },
+                        imageFileName = stored.fileName,
+                        imageMimeType = stored.mimeType,
+                        imageSha256 = stored.sha256,
+                    ),
+                )
+            }.onSuccess { result ->
+                emitShareResult(result)
+            }.onFailure {
+                emitEvent(SnackbarEvent(appContext.getString(R.string.share_save_failed)))
+            }
+        }
+    }
+
+
     fun showMessage(resId: Int) {
         emitEvent(SnackbarEvent(appContext.getString(resId)))
     }
@@ -250,6 +275,16 @@ class AppViewModel(
     }
 
     suspend fun getNote(noteId: Long): NoteWithTags? = repository.getNote(noteId)
+
+    suspend fun importImage(uri: Uri): StoredImage = repository.importImage(uri)
+
+    fun imageFile(fileName: String?): java.io.File? = repository.imageFile(fileName)
+
+    fun discardImage(fileName: String?) {
+        if (fileName.isNullOrBlank()) return
+        viewModelScope.launch { repository.discardImage(fileName) }
+    }
+
 
     suspend fun saveNote(noteId: Long?, draft: NoteDraft): Result<Long> {
         val shouldFetchTitle = draft.type == NoteType.LINK && draft.title.isBlank()
@@ -415,7 +450,10 @@ class AppViewModel(
 
     private fun displayTitle(noteWithTags: NoteWithTags): String =
         noteWithTags.note.title.ifBlank {
-            noteWithTags.note.url ?: noteWithTags.note.content.orEmpty().take(80)
+            when (noteWithTags.note.type) {
+                NoteType.IMAGE -> appContext.getString(R.string.note_untitled_image)
+                else -> noteWithTags.note.url ?: noteWithTags.note.content.orEmpty().take(80)
+            }
         }
 
     private companion object {

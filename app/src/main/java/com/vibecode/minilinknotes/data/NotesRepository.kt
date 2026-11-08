@@ -1,5 +1,7 @@
 ﻿package com.vibecode.minilinknotes.data
 
+import android.database.sqlite.SQLiteConstraintException
+import android.net.Uri
 import androidx.room.withTransaction
 import com.vibecode.minilinknotes.util.SharedContent
 import com.vibecode.minilinknotes.util.TimeUtils
@@ -12,6 +14,9 @@ data class NoteDraft(
     val title: String,
     val url: String?,
     val content: String?,
+    val imageFileName: String? = null,
+    val imageMimeType: String? = null,
+    val imageSha256: String? = null,
     val tagIds: List<Long> = emptyList(),
     val titleManuallyEdited: Boolean = false,
 )
@@ -28,29 +33,49 @@ class NotesRepository(
     private val dao: NotesDao,
     private val settingsStore: SettingsStore,
     private val titleFetcher: TitleFetcher,
+    private val imageStorage: ImageStorage,
 ) {
 
     val activeNotes: Flow<List<NoteWithTags>> = dao.observeActiveNotes()
+    val activeNoteEntities: Flow<List<NoteEntity>> = dao.observeActiveNoteEntities()
     val trash: Flow<List<NoteWithTags>> = dao.observeTrash()
     val tagsWithCount: Flow<List<TagWithNoteCount>> = dao.observeTagsWithCount()
 
     suspend fun getNote(id: Long): NoteWithTags? = dao.getNote(id)
 
+    suspend fun getActiveNoteEntity(id: Long): NoteEntity? = dao.getActiveNoteEntity(id)
+
+    suspend fun importImage(uri: Uri): StoredImage = imageStorage.import(uri)
+
+    fun imageFile(fileName: String?) = imageStorage.imageFile(fileName)
+
+    suspend fun imageThumbnail(fileName: String?) = imageStorage.thumbnailFile(fileName)
+
+    suspend fun discardImage(fileName: String?) = imageStorage.delete(fileName)
+
     suspend fun createNote(draft: NoteDraft): CreateNoteResult {
         val normalized = normalizeDraft(draft)
         val now = System.currentTimeMillis()
 
-        val (id, duplicate) = database.withTransaction {
-            val duplicate = normalized.url?.let { url ->
-                val key = UrlUtils.dedupeKey(url)
-                dao.getActiveUrls().any { UrlUtils.dedupeKey(it) == key }
-            } ?: false
+        val result = database.withTransaction {
+            val duplicate = when (normalized.type) {
+                NoteType.LINK -> normalized.url?.let { url ->
+                    val key = UrlUtils.dedupeKey(url)
+                    dao.getActiveUrls().any { UrlUtils.dedupeKey(it) == key }
+                } ?: false
+
+                NoteType.TEXT -> false
+                NoteType.IMAGE -> normalized.imageSha256?.let { it in dao.getActiveImageHashes() } ?: false
+            }
             val noteId = dao.insertNote(
                 NoteEntity(
                     type = normalized.type,
                     title = normalized.title,
                     url = normalized.url,
                     content = normalized.content,
+                    imageFileName = normalized.imageFileName,
+                    imageMimeType = normalized.imageMimeType,
+                    imageSha256 = normalized.imageSha256,
                     isRead = false,
                     createdAt = now,
                     updatedAt = now,
@@ -58,9 +83,9 @@ class NotesRepository(
                 ),
             )
             replaceTags(noteId, normalized.tagIds)
-            noteId to duplicate
+            CreateNoteResult(noteId, duplicate)
         }
-        return CreateNoteResult(id, duplicate)
+        return result
     }
 
     suspend fun createFromShared(shared: SharedContent): CreateNoteResult {
@@ -83,28 +108,40 @@ class NotesRepository(
         )
     }
 
-    suspend fun updateNote(id: Long, draft: NoteDraft): Result<Unit> = runCatching {
+    suspend fun updateNote(id: Long, draft: NoteDraft): Result<Unit> {
         val normalized = normalizeDraft(draft)
         val now = System.currentTimeMillis()
-        database.withTransaction {
-            val existing = dao.getNoteEntity(id) ?: error("Note not found")
-            val urlChanged = existing.url != normalized.url
-            val titleEdited = when {
-                normalized.type == NoteType.LINK && normalized.title.isBlank() -> false
-                else -> existing.titleEdited || normalized.titleManuallyEdited
+        var existing: NoteEntity? = null
+        return try {
+            database.withTransaction {
+                existing = dao.getNoteEntity(id) ?: error("Note not found")
+                val urlChanged = existing!!.url != normalized.url
+                val titleEdited = when {
+                    normalized.type == NoteType.LINK && normalized.title.isBlank() -> false
+                    else -> existing!!.titleEdited || normalized.titleManuallyEdited
+                }
+                dao.updateNote(
+                    existing!!.copy(
+                        type = normalized.type,
+                        title = normalized.title,
+                        url = normalized.url,
+                        content = normalized.content,
+                        imageFileName = normalized.imageFileName,
+                        imageMimeType = normalized.imageMimeType,
+                        imageSha256 = normalized.imageSha256,
+                        titleEdited = titleEdited,
+                        titleFetchState = if (urlChanged) TitleFetchState.NONE else existing!!.titleFetchState,
+                        updatedAt = now,
+                    ),
+                )
+                replaceTags(id, normalized.tagIds)
             }
-            dao.updateNote(
-                existing.copy(
-                    type = normalized.type,
-                    title = normalized.title,
-                    url = normalized.url,
-                    content = normalized.content,
-                    titleEdited = titleEdited,
-                    titleFetchState = if (urlChanged) TitleFetchState.NONE else existing.titleFetchState,
-                    updatedAt = now,
-                ),
-            )
-            replaceTags(id, normalized.tagIds)
+            if (existing?.imageFileName != normalized.imageFileName) {
+                imageStorage.delete(existing?.imageFileName)
+            }
+            Result.success(Unit)
+        } catch (error: Throwable) {
+            Result.failure(error)
         }
     }
 
@@ -114,7 +151,12 @@ class NotesRepository(
 
     suspend fun markAllRead(): Int = dao.markAllRead(System.currentTimeMillis())
 
-    suspend fun purgeAllTrash(): Int = dao.purgeAllTrash()
+    suspend fun purgeAllTrash(): Int {
+        val imageFiles = dao.getTrashImageFileNames()
+        val count = dao.purgeAllTrash()
+        imageFiles.forEach { imageStorage.delete(it) }
+        return count
+    }
 
     suspend fun softDelete(id: Long) {
         val now = System.currentTimeMillis()
@@ -126,11 +168,22 @@ class NotesRepository(
     }
 
     suspend fun purge(id: Long) {
+        val imageFileName = dao.getNoteEntity(id)?.imageFileName
         dao.deleteNotePermanently(id)
+        imageStorage.delete(imageFileName)
     }
 
-    suspend fun purgeExpired(): Int =
-        dao.purgeExpired(TimeUtils.trashExpiryThreshold())
+    suspend fun purgeExpired(): Int {
+        val threshold = TimeUtils.trashExpiryThreshold()
+        val imageFiles = dao.getExpiredTrashImageFileNames(threshold)
+        val count = dao.purgeExpired(threshold)
+        imageFiles.forEach { imageStorage.delete(it) }
+        return count
+    }
+
+    suspend fun cleanupImageFiles() {
+        imageStorage.cleanupUnreferenced(dao.getAllImageFileNames().toSet())
+    }
 
     suspend fun fetchAndApplyTitle(id: Long, force: Boolean = false): Boolean {
         if (!force) {
@@ -176,13 +229,17 @@ class NotesRepository(
         require(trimmed.isNotEmpty())
         if (dao.findTagByName(trimmed) != null) throw DuplicateTagNameException()
         val order = dao.maxTagSortOrder() + 1
-        dao.insertTag(
-            TagEntity(
-                name = trimmed,
-                colorIndex = colorIndex.coerceIn(0, TAG_COLOR_COUNT - 1),
-                sortOrder = order,
-            ),
-        )
+        try {
+            dao.insertTag(
+                TagEntity(
+                    name = trimmed,
+                    colorIndex = colorIndex.coerceIn(0, TAG_COLOR_COUNT - 1),
+                    sortOrder = order,
+                ),
+            )
+        } catch (_: SQLiteConstraintException) {
+            throw DuplicateTagNameException()
+        }
     }
 
     suspend fun updateTag(id: Long, name: String, colorIndex: Int): Result<Unit> = runCatching {
@@ -191,12 +248,16 @@ class NotesRepository(
         val sameName = dao.findTagByName(trimmed)
         if (sameName != null && sameName.id != id) throw DuplicateTagNameException()
         val tag = dao.getTag(id) ?: error("Tag not found")
-        dao.updateTag(
-            tag.copy(
-                name = trimmed,
-                colorIndex = colorIndex.coerceIn(0, TAG_COLOR_COUNT - 1),
-            ),
-        )
+        try {
+            dao.updateTag(
+                tag.copy(
+                    name = trimmed,
+                    colorIndex = colorIndex.coerceIn(0, TAG_COLOR_COUNT - 1),
+                ),
+            )
+        } catch (_: SQLiteConstraintException) {
+            throw DuplicateTagNameException()
+        }
     }
 
     suspend fun deleteTag(id: Long) {
@@ -245,6 +306,18 @@ class NotesRepository(
                 require(content.isNotEmpty()) { "Content required" }
                 val title = draft.title.trim().ifBlank { firstLineTitle(content) }
                 draft.copy(url = null, content = content, title = title)
+            }
+
+            NoteType.IMAGE -> {
+                require(!draft.imageFileName.isNullOrBlank()) { "Image required" }
+                require(!draft.imageMimeType.isNullOrBlank()) { "Image MIME required" }
+                require(!draft.imageSha256.isNullOrBlank()) { "Image hash required" }
+                require(imageStorage.imageFile(draft.imageFileName) != null) { "Image missing" }
+                draft.copy(
+                    title = draft.title.trim(),
+                    url = null,
+                    content = draft.content?.trim()?.ifBlank { null },
+                )
             }
         }
     }

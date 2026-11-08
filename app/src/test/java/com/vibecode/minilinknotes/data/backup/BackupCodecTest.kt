@@ -31,6 +31,49 @@ class BackupCodecTest {
     }
 
     @Test
+    fun roundTrip_preservesImageMetadata() {
+        val file = BackupFile(
+            exportedAt = 1L,
+            notes = listOf(
+                BackupNote(
+                    type = "IMAGE",
+                    title = "照片",
+                    createdAt = 2L,
+                    image = BackupImage(
+                        path = "images/abc.jpg",
+                        mimeType = "image/jpeg",
+                        sha256 = "abc",
+                    ),
+                ),
+            ),
+        )
+
+        val decoded = BackupCodec.decode(BackupCodec.encode(file))
+        assertEquals(file, decoded)
+    }
+
+    @Test
+    fun decode_acceptsLegacySchemaWithoutImages() {
+        val raw = """
+            {
+              "schemaVersion": 1,
+              "exportedAt": 1,
+              "tags": [],
+              "notes": [{
+                "type": "TEXT",
+                "title": "舊筆記",
+                "content": "內容",
+                "createdAt": 1
+              }]
+            }
+        """.trimIndent()
+
+        val decoded = BackupCodec.decode(raw)
+        assertEquals(1, decoded.schemaVersion)
+        assertEquals(null, decoded.notes.single().image)
+    }
+
+    @Test
     fun decode_rejectsInvalidJson() {
         assertThrows(BackupException::class.java) {
             BackupCodec.decode("{ not json")

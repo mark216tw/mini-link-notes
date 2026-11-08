@@ -26,14 +26,14 @@ sdk.dir=C\:\\Users\\<使用者>\\AppData\\Local\\Android\\Sdk
 版本位於 `app/build.gradle.kts` 的 `defaultConfig`：
 
 ```kotlin
-versionCode = 7
-versionName = "1.0.0"
+versionCode = 10
+versionName = "1.5.0"
 ```
 
 - `versionCode` 每次功能變更遞增。
 - `versionName` 採 `主.次.修`。
 - Build Type 會自動加上後綴：`debug` → `-debug`、`prerelease` → `-prerelease`。
-- 因此 `prerelease` 的實際版本字串為 `1.0.0-prerelease`。
+- 因此 `prerelease` 的實際版本字串為 `1.5.0-prerelease`。
 
 ## 3. Build Type
 
@@ -101,7 +101,7 @@ app/build/outputs/apk/prerelease/app-prerelease.apk
 
 - 啟用 R8 程式碼壓縮與資源縮減
 - 使用 Android Debug 金鑰簽署
-- versionName 為 `1.0.0-prerelease`
+- versionName 為 `1.5.0-prerelease`
 - 僅供測試，不可上架 Google Play
 
 若要重新命名為發佈用檔名，可複製為 `app-prerelease.apk`（Gradle 預設輸出即為此名稱）。
@@ -132,13 +132,13 @@ app/build/outputs/apk/prerelease/app-prerelease.apk
 
 ## 8. GitHub Pre-release 流程
 
-本專案目前以 `1.0.0-prerelease` 作為首個公開測試版。
+本專案以 `prerelease` APK 作為公開測試版，正式上架仍須改用 `release` 簽署。
 
 ```bash
-git tag v1.0.0-prerelease
-git push origin v1.0.0-prerelease
-gh release create v1.0.0-prerelease app/build/outputs/apk/prerelease/app-prerelease.apk \
-  --title "mini網頁筆記 1.0.0-prerelease" \
+git tag v1.5.0
+git push origin v1.5.0
+gh release create v1.5.0 app/build/outputs/apk/prerelease/app-prerelease.apk \
+  --title "mini網頁筆記 1.5.0" \
   --notes-file RELEASE_NOTES.md \
   --prerelease
 ```

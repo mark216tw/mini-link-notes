@@ -5,18 +5,18 @@ import androidx.compose.ui.graphics.Color
 data class TagColor(val light: Color, val dark: Color)
 
 val TagColors = listOf(
-    TagColor(Color(0xFFB3261E), Color(0xFFF2B8B5)),
-    TagColor(Color(0xFFB2570A), Color(0xFFFFB77C)),
-    TagColor(Color(0xFF8A6D00), Color(0xFFFFD65C)),
-    TagColor(Color(0xFF5F6B00), Color(0xFFD6E36B)),
-    TagColor(Color(0xFF2E6B32), Color(0xFF9CD99F)),
-    TagColor(Color(0xFF00695C), Color(0xFF6FD8C8)),
-    TagColor(Color(0xFF00639B), Color(0xFF7CC7F2)),
-    TagColor(Color(0xFF33489B), Color(0xFFAAB8F5)),
-    TagColor(Color(0xFF6A2C91), Color(0xFFD5A6EE)),
-    TagColor(Color(0xFF9C2756), Color(0xFFF5A3C1)),
-    TagColor(Color(0xFF6B4A3A), Color(0xFFC9A998)),
-    TagColor(Color(0xFF4A6069), Color(0xFFAFC3CB)),
+    TagColor(Color(0xFFD32F2F), Color(0xFFFF8A80)),
+    TagColor(Color(0xFFE64A19), Color(0xFFFFAB91)),
+    TagColor(Color(0xFFE65100), Color(0xFFFFCC80)),
+    TagColor(Color(0xFF558B2F), Color(0xFFC5E1A5)),
+    TagColor(Color(0xFF2E7D32), Color(0xFF81C784)),
+    TagColor(Color(0xFF00796B), Color(0xFF4DB6AC)),
+    TagColor(Color(0xFF0277BD), Color(0xFF4FC3F7)),
+    TagColor(Color(0xFF303F9F), Color(0xFF7986CB)),
+    TagColor(Color(0xFF7B1FA2), Color(0xFFBA68C8)),
+    TagColor(Color(0xFFC2185B), Color(0xFFF06292)),
+    TagColor(Color(0xFF6D4C41), Color(0xFFBCAAA4)),
+    TagColor(Color(0xFF455A64), Color(0xFF90A4AE)),
 )
 
 fun tagColor(index: Int, dark: Boolean): Color {
@@ -39,3 +39,22 @@ val LightOnPrimaryContainer = Color(0xFF00201D)
 val LightSecondary = Color(0xFF4A635F)
 val LightBackground = Color(0xFFFAFDFC)
 val LightSurfaceVariant = Color(0xFFDBE5E2)
+
+val WidgetBackgroundDay = Color(0xFFFFFFFF)
+val WidgetBackgroundNight = Color(0xFF1C211F)
+val WidgetTitleDay = Color(0xFF1A1C1B)
+val WidgetTitleNight = Color(0xFFE2E3E1)
+val WidgetBodyDay = Color(0xFF444746)
+val WidgetBodyNight = Color(0xFFC4C7C5)
+val WidgetLinkDay = Color(0xFF006A60)
+val WidgetLinkNight = Color(0xFF4FDBC8)
+val ImageViewerScrim = Color(0xF2000000)
+val ImageViewerContent = Color(0xFFFFFFFF)
+
+val WidgetTextBlack = Color(0xFF000000)
+val WidgetTextWhite = Color(0xFFFFFFFF)
+val WidgetTextDarkGray = Color(0xFF444444)
+val WidgetTextLightGray = Color(0xFFD3D3D3)
+val WidgetTextBlue = Color(0xFF1565C0)
+val WidgetTextTeal = Color(0xFF008577)
+val WidgetTextYellow = Color(0xFFF9A825)

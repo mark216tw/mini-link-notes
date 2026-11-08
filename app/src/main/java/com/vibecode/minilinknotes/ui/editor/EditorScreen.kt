@@ -1,7 +1,11 @@
 package com.vibecode.minilinknotes.ui.editor
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,10 +23,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
@@ -46,17 +52,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.vibecode.minilinknotes.AppViewModel
 import com.vibecode.minilinknotes.R
+import com.vibecode.minilinknotes.data.ImageStorage
 import com.vibecode.minilinknotes.data.NoteDraft
 import com.vibecode.minilinknotes.data.NoteType
 import com.vibecode.minilinknotes.data.TagEntity
+import com.vibecode.minilinknotes.ui.components.ImageZoomDialog
+import com.vibecode.minilinknotes.ui.components.NoteImage
 import com.vibecode.minilinknotes.ui.theme.tagColor
 import com.vibecode.minilinknotes.util.UrlUtils
 import kotlinx.coroutines.launch
@@ -67,6 +76,7 @@ fun EditorScreen(
     noteId: Long,
     tags: List<TagEntity>,
     viewModel: AppViewModel,
+    imageStorage: ImageStorage,
     onBack: () -> Unit,
     onManageTags: () -> Unit,
 ) {
@@ -86,14 +96,44 @@ fun EditorScreen(
     var initialUrl by rememberSaveable(noteId) { mutableStateOf("") }
     var initialContent by rememberSaveable(noteId) { mutableStateOf("") }
     var initialTagIds by rememberSaveable(noteId) { mutableStateOf(setOf<Long>()) }
+    var imageFileName by rememberSaveable(noteId) { mutableStateOf<String?>(null) }
+    var imageMimeType by rememberSaveable(noteId) { mutableStateOf<String?>(null) }
+    var imageSha256 by rememberSaveable(noteId) { mutableStateOf<String?>(null) }
+    var initialImageFileName by rememberSaveable(noteId) { mutableStateOf<String?>(null) }
 
     var isSaving by remember { mutableStateOf(false) }
     var isFetching by remember { mutableStateOf(false) }
+    var isImportingImage by remember { mutableStateOf(false) }
     var infoRes by remember { mutableStateOf<Int?>(null) }
     var errorRes by remember { mutableStateOf<Int?>(null) }
     var showDiscard by remember { mutableStateOf(false) }
+    var showImageViewer by remember { mutableStateOf(false) }
 
     val type = runCatching { NoteType.valueOf(typeName) }.getOrDefault(NoteType.LINK)
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            isImportingImage = true
+            errorRes = null
+            runCatching { viewModel.importImage(uri) }
+                .onSuccess { stored ->
+                    val previous = imageFileName
+                    if (previous != null && previous != initialImageFileName) {
+                        viewModel.discardImage(previous)
+                    }
+                    imageFileName = stored.fileName
+                    imageMimeType = stored.mimeType
+                    imageSha256 = stored.sha256
+                }
+                .onFailure {
+                    errorRes = R.string.editor_image_failed
+                }
+            isImportingImage = false
+        }
+    }
 
     LaunchedEffect(noteId) {
         if (initialized) return@LaunchedEffect
@@ -109,20 +149,39 @@ fun EditorScreen(
         content = note.content.orEmpty()
         selectedTagIds = noteWithTags.tags.map { it.id }.toSet()
         titleManuallyEdited = note.titleEdited
+        imageFileName = note.imageFileName
+        imageMimeType = note.imageMimeType
+        imageSha256 = note.imageSha256
         initialType = note.type.name
         initialTitle = title
         initialUrl = url
         initialContent = content
         initialTagIds = selectedTagIds
+        initialImageFileName = note.imageFileName
         initialized = true
     }
 
+    val imageChanged = imageFileName != initialImageFileName
     val hasChanges = if (isNew) {
         title.isNotBlank() || url.isNotBlank() || content.isNotBlank() || selectedTagIds.isNotEmpty() ||
-            typeName != NoteType.LINK.name
+            typeName != NoteType.LINK.name || imageChanged
     } else {
         typeName != initialType || title != initialTitle || url != initialUrl ||
-            content != initialContent || selectedTagIds != initialTagIds
+            content != initialContent || selectedTagIds != initialTagIds || imageChanged
+    }
+
+    val discardStagedImage = {
+        val current = imageFileName
+        if (current != null && current != initialImageFileName) {
+            viewModel.discardImage(current)
+        }
+    }
+
+    val clearImageState = {
+        discardStagedImage()
+        imageFileName = null
+        imageMimeType = null
+        imageSha256 = null
     }
 
     val requestBack = {
@@ -139,12 +198,16 @@ fun EditorScreen(
             title = title,
             url = if (type == NoteType.LINK) url else null,
             content = content.ifBlank { null },
+            imageFileName = if (type == NoteType.IMAGE) imageFileName else null,
+            imageMimeType = if (type == NoteType.IMAGE) imageMimeType else null,
+            imageSha256 = if (type == NoteType.IMAGE) imageSha256 else null,
             tagIds = validTagIds.toList(),
             titleManuallyEdited = titleManuallyEdited,
         )
         val invalid = when {
             type == NoteType.LINK && UrlUtils.normalize(url) == null -> R.string.editor_link_required
             type == NoteType.TEXT && content.isBlank() -> R.string.editor_content_required
+            type == NoteType.IMAGE && imageFileName == null -> R.string.editor_image_required
             else -> null
         }
         if (invalid != null) {
@@ -162,6 +225,9 @@ fun EditorScreen(
                         error is IllegalArgumentException && type == NoteType.LINK ->
                             R.string.editor_link_required
 
+                        error is IllegalArgumentException && type == NoteType.IMAGE ->
+                            R.string.editor_image_required
+
                         error is IllegalArgumentException -> R.string.editor_content_required
                         else -> R.string.editor_save_failed
                     }
@@ -178,6 +244,7 @@ fun EditorScreen(
                         when {
                             !isNew -> stringResource(R.string.editor_edit)
                             type == NoteType.TEXT -> stringResource(R.string.editor_new_text)
+                            type == NoteType.IMAGE -> stringResource(R.string.editor_new_image)
                             else -> stringResource(R.string.editor_new_link)
                         },
                     )
@@ -193,7 +260,7 @@ fun EditorScreen(
                 actions = {
                     TextButton(
                         onClick = submit,
-                        enabled = !isSaving && initialized,
+                        enabled = !isSaving && initialized && !isImportingImage,
                     ) {
                         Text(stringResource(R.string.action_save))
                     }
@@ -226,10 +293,11 @@ fun EditorScreen(
                 text = stringResource(R.string.editor_type),
                 style = MaterialTheme.typography.titleSmall,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = type == NoteType.LINK,
                     onClick = {
+                        if (type == NoteType.IMAGE) clearImageState()
                         typeName = NoteType.LINK.name
                         errorRes = null
                     },
@@ -239,12 +307,79 @@ fun EditorScreen(
                 FilterChip(
                     selected = type == NoteType.TEXT,
                     onClick = {
+                        if (type == NoteType.IMAGE) clearImageState()
                         typeName = NoteType.TEXT.name
                         errorRes = null
                     },
                     label = { Text(stringResource(R.string.note_type_text)) },
                     leadingIcon = { Icon(Icons.Outlined.Description, contentDescription = null) },
                 )
+                FilterChip(
+                    selected = type == NoteType.IMAGE,
+                    onClick = {
+                        typeName = NoteType.IMAGE.name
+                        errorRes = null
+                    },
+                    label = { Text(stringResource(R.string.note_type_image)) },
+                    leadingIcon = { Icon(Icons.Outlined.Image, contentDescription = null) },
+                )
+            }
+
+            if (type == NoteType.IMAGE) {
+                NoteImage(
+                    imageStorage = imageStorage,
+                    fileName = imageFileName,
+                    contentDescription = stringResource(R.string.editor_image),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(enabled = imageFileName != null) { showImageViewer = true },
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(
+                        onClick = {
+                            imagePicker.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                            )
+                        },
+                        enabled = !isImportingImage,
+                    ) {
+                        if (isImportingImage) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Image,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(4.dp))
+                        }
+                        Text(
+                            stringResource(
+                                if (imageFileName == null) {
+                                    R.string.editor_image_pick
+                                } else {
+                                    R.string.editor_image_change
+                                },
+                            ),
+                        )
+                    }
+                    if (imageFileName != null) {
+                        TextButton(
+                            onClick = {
+                                clearImageState()
+                                errorRes = null
+                            },
+                        ) {
+                            Text(stringResource(R.string.editor_image_remove))
+                        }
+                    }
+                }
             }
 
             OutlinedTextField(
@@ -335,7 +470,11 @@ fun EditorScreen(
                 label = {
                     Text(
                         stringResource(
-                            if (type == NoteType.TEXT) R.string.editor_content else R.string.editor_content_optional,
+                            when (type) {
+                                NoteType.TEXT -> R.string.editor_content
+                                NoteType.IMAGE -> R.string.editor_description_optional
+                                NoteType.LINK -> R.string.editor_content_optional
+                            },
                         ),
                     )
                 },
@@ -407,6 +546,7 @@ fun EditorScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        discardStagedImage()
                         showDiscard = false
                         onBack()
                     },
@@ -419,6 +559,15 @@ fun EditorScreen(
                     Text(stringResource(R.string.action_cancel))
                 }
             },
+        )
+    }
+
+    if (showImageViewer) {
+        ImageZoomDialog(
+            imageStorage = imageStorage,
+            fileName = imageFileName,
+            contentDescription = stringResource(R.string.image_viewer_open),
+            onDismiss = { showImageViewer = false },
         )
     }
 }

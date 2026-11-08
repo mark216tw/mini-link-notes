@@ -14,7 +14,7 @@
 | 編譯／目標版本 | compileSdk 36 / targetSdk 36 |
 | Java / JVM Target | 17 |
 | 建置系統 | Gradle Kotlin DSL + Version Catalog |
-| 目前版本 | `1.0.0-prerelease`（versionCode 7） |
+| 目前版本 | `1.5.0`（versionCode 10） |
 | 授權 | MIT |
 
 ## 2. 技術基線

@@ -4,6 +4,7 @@
 
     <string name="action_add">新增</string>
     <string name="action_save">儲存</string>
+    <string name="action_confirm">確定</string>
     <string name="action_cancel">取消</string>
     <string name="action_delete">刪除</string>
     <string name="action_edit">編輯</string>
@@ -16,6 +17,7 @@
     <string name="action_copy_content">複製內容</string>
     <string name="action_share_url">分享網址</string>
     <string name="action_share_content">分享內容</string>
+    <string name="action_share_image">分享圖片</string>
     <string name="action_manage_tags">管理標籤</string>
     <string name="action_mark_all_read">全部已讀</string>
     <string name="action_clear_filter">清除篩選</string>
@@ -51,8 +53,10 @@
 
     <string name="note_type_link">連結</string>
     <string name="note_type_text">文字</string>
+    <string name="note_type_image">圖片</string>
     <string name="note_untitled_link">未命名連結</string>
     <string name="note_untitled_text">文字筆記</string>
+    <string name="note_untitled_image">圖片筆記</string>
 
     <string name="deleted_note">已移到回收筒</string>
     <string name="restored_note">已復原筆記</string>
@@ -68,12 +72,23 @@
 
     <string name="editor_new_link">新增連結</string>
     <string name="editor_new_text">新增文字</string>
+    <string name="editor_new_image">新增圖片</string>
     <string name="editor_edit">編輯筆記</string>
     <string name="editor_type">類型</string>
     <string name="editor_title">標題</string>
     <string name="editor_url">網址</string>
     <string name="editor_content">內容</string>
     <string name="editor_content_optional">內容（選填）</string>
+    <string name="editor_description_optional">說明（選填）</string>
+    <string name="editor_image">圖片</string>
+    <string name="editor_image_pick">選擇圖片</string>
+    <string name="editor_image_change">更換圖片</string>
+    <string name="editor_image_remove">移除圖片</string>
+    <string name="editor_image_required">請選擇圖片</string>
+    <string name="editor_image_failed">無法載入圖片，請改用其他圖片</string>
+    <string name="image_viewer_open">放大檢視圖片</string>
+    <string name="image_viewer_close">關閉圖片檢視</string>
+    <string name="image_viewer_failed">無法載入圖片</string>
     <string name="editor_title_hint">輸入標題</string>
     <string name="editor_url_hint">https://example.com</string>
     <string name="editor_content_hint">輸入或貼上文字內容</string>
@@ -106,6 +121,7 @@
     <string name="tag_updated">已更新標籤</string>
     <string name="tag_name_required">請輸入標籤名稱</string>
     <string name="tag_name_duplicate">已有相同名稱的標籤</string>
+    <string name="tag_save_failed">儲存失敗，請稍後再試</string>
     <string name="tag_reorder_hint">長按拖曳握把可調整順序</string>
     <string name="tag_note_count">%1$d 則筆記</string>
     <string name="tag_color_number">顏色 %1$d</string>
@@ -137,10 +153,10 @@
     <string name="settings_auto_title">自動取得網頁標題</string>
     <string name="settings_auto_title_desc">新增或分享連結時，連線到網頁讀取標題</string>
     <string name="settings_data">資料</string>
-    <string name="settings_export">匯出 JSON</string>
-    <string name="settings_export_desc">匯出所有未刪除的筆記與標籤</string>
-    <string name="settings_import">匯入 JSON</string>
-    <string name="settings_import_desc">從備份檔還原筆記與標籤</string>
+    <string name="settings_export">匯出備份</string>
+    <string name="settings_export_desc">匯出所有未刪除的筆記、標籤與圖片（ZIP）</string>
+    <string name="settings_import">匯入備份</string>
+    <string name="settings_import_desc">從 JSON 或 ZIP 備份檔還原筆記、標籤與圖片</string>
     <string name="settings_import_mode_title">選擇匯入方式</string>
     <string name="settings_import_merge_desc">保留現有資料，略過重複的筆記</string>
     <string name="settings_import_replace_desc">先清空所有筆記與標籤，再匯入備份</string>
@@ -159,6 +175,28 @@
     <string name="about_privacy">隱私</string>
     <string name="about_privacy_content">筆記儲存在本機，若系統開啟備份，資料會由 Android 備份機制保存。只有在新增或分享連結、且開啟「自動取得網頁標題」時，才會連線到該網頁讀取標題。</string>
     <string name="about_license">開源元件</string>
-    <string name="about_license_content">Jetpack Compose、Room、DataStore、OkHttp、Jsoup、Kotlin Serialization。</string>
+    <string name="about_license_content">Jetpack Compose、Room、DataStore、Glance、ExifInterface、OkHttp、Jsoup、Kotlin Serialization。</string>
     <string name="about_build_type">建置類型</string>
+
+    <string name="widget_name">網頁筆記小工具</string>
+    <string name="widget_description">在桌面顯示一則筆記的標題、連結與內容</string>
+    <string name="widget_loading">載入中…</string>
+    <string name="widget_unconfigured">尚未選擇筆記</string>
+    <string name="widget_configure_title">選擇要顯示的筆記</string>
+    <string name="widget_style_title">小工具文字樣式</string>
+    <string name="widget_text_color">文字顏色</string>
+    <string name="widget_font_size">字型大小：%1$d%%</string>
+    <string name="widget_preview">即時預覽</string>
+    <string name="widget_color_auto">自動</string>
+    <string name="widget_color_black">黑色</string>
+    <string name="widget_color_white">白色</string>
+    <string name="widget_color_dark_gray">深灰</string>
+    <string name="widget_color_light_gray">淺灰</string>
+    <string name="widget_color_blue">藍色</string>
+    <string name="widget_color_teal">藍綠色</string>
+    <string name="widget_color_yellow">黃色</string>
+    <string name="widget_configure_empty">尚無可顯示的筆記</string>
+    <string name="widget_configure_empty_message">先新增筆記，再回來設定這個小工具。</string>
+    <string name="widget_unavailable">這則筆記已刪除或不存在</string>
+    <string name="widget_select_hint">點此重新選擇筆記</string>
 </resources>

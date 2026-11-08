@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,6 +45,8 @@ import com.vibecode.minilinknotes.AppViewModel
 import com.vibecode.minilinknotes.R
 import com.vibecode.minilinknotes.data.NoteType
 import com.vibecode.minilinknotes.data.NoteWithTags
+import com.vibecode.minilinknotes.data.ImageStorage
+import com.vibecode.minilinknotes.ui.components.NoteImage
 import com.vibecode.minilinknotes.util.TimeUtils
 import com.vibecode.minilinknotes.util.UrlUtils
 
@@ -51,6 +55,7 @@ import com.vibecode.minilinknotes.util.UrlUtils
 fun TrashScreen(
     notes: List<NoteWithTags>,
     viewModel: AppViewModel,
+    imageStorage: ImageStorage,
     onBack: () -> Unit,
     onOpenLink: (Long, String) -> Unit,
 ) {
@@ -123,6 +128,7 @@ fun TrashScreen(
             items(notes, key = { it.note.id }) { item ->
                 TrashCard(
                     item = item,
+                    imageStorage = imageStorage,
                     onRestore = { viewModel.restoreNote(item.note.id) },
                     onPurge = { pendingPurge = item },
                     onOpenLink = {
@@ -189,6 +195,7 @@ fun TrashScreen(
 @Composable
 private fun TrashCard(
     item: NoteWithTags,
+    imageStorage: ImageStorage,
     onRestore: () -> Unit,
     onPurge: () -> Unit,
     onOpenLink: () -> Unit,
@@ -197,11 +204,13 @@ private fun TrashCard(
     val deletedAt = note.deletedAt ?: return
     val daysLeft = TimeUtils.trashDaysLeft(deletedAt)
     val title = note.title.ifBlank {
-        if (note.type == NoteType.LINK) {
-            stringResource(R.string.note_untitled_link)
-        } else {
-            stringResource(R.string.note_untitled_text)
-        }
+        stringResource(
+            when (note.type) {
+                NoteType.LINK -> R.string.note_untitled_link
+                NoteType.TEXT -> R.string.note_untitled_text
+                NoteType.IMAGE -> R.string.note_untitled_image
+            },
+        )
     }
     val host = note.url?.let(UrlUtils::hostOf)
 
@@ -214,6 +223,18 @@ private fun TrashCard(
                 .fillMaxWidth()
                 .padding(12.dp),
         ) {
+            if (note.type == NoteType.IMAGE) {
+                NoteImage(
+                    imageStorage = imageStorage,
+                    fileName = note.imageFileName,
+                    contentDescription = stringResource(R.string.note_type_image),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                )
+                Spacer(Modifier.size(8.dp))
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (note.type == NoteType.LINK) {
                     Icon(

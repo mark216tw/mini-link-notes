@@ -14,8 +14,8 @@ android {
         applicationId = "com.vibecode.minilinknotes"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.0.0"
+        versionCode = 10
+        versionName = "1.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
     }
@@ -90,6 +90,8 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.exifinterface)
     implementation(libs.okhttp)
     implementation(libs.jsoup)
     implementation(libs.kotlinx.serialization.json)
