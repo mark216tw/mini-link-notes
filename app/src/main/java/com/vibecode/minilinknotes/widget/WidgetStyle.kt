@@ -1,6 +1,13 @@
 package com.vibecode.minilinknotes.widget
 
 import androidx.compose.ui.graphics.Color
+import com.vibecode.minilinknotes.ui.theme.WidgetBackgroundLightBlue
+import com.vibecode.minilinknotes.ui.theme.WidgetBackgroundLightGray
+import com.vibecode.minilinknotes.ui.theme.WidgetBackgroundLightGreen
+import com.vibecode.minilinknotes.ui.theme.WidgetBackgroundLightOrange
+import com.vibecode.minilinknotes.ui.theme.WidgetBackgroundLightPink
+import com.vibecode.minilinknotes.ui.theme.WidgetBackgroundLightPurple
+import com.vibecode.minilinknotes.ui.theme.WidgetBackgroundLightYellow
 import com.vibecode.minilinknotes.ui.theme.WidgetTextBlack
 import com.vibecode.minilinknotes.ui.theme.WidgetTextBlue
 import com.vibecode.minilinknotes.ui.theme.WidgetTextDarkGray
@@ -8,6 +15,23 @@ import com.vibecode.minilinknotes.ui.theme.WidgetTextLightGray
 import com.vibecode.minilinknotes.ui.theme.WidgetTextTeal
 import com.vibecode.minilinknotes.ui.theme.WidgetTextWhite
 import com.vibecode.minilinknotes.ui.theme.WidgetTextYellow
+
+enum class WidgetBackgroundColor(val color: Color?) {
+    AUTO(null),
+    LIGHT_YELLOW(WidgetBackgroundLightYellow),
+    LIGHT_GREEN(WidgetBackgroundLightGreen),
+    LIGHT_BLUE(WidgetBackgroundLightBlue),
+    LIGHT_PINK(WidgetBackgroundLightPink),
+    LIGHT_PURPLE(WidgetBackgroundLightPurple),
+    LIGHT_ORANGE(WidgetBackgroundLightOrange),
+    LIGHT_GRAY(WidgetBackgroundLightGray),
+    ;
+
+    companion object {
+        fun fromPreference(value: String?): WidgetBackgroundColor =
+            entries.firstOrNull { it.name == value } ?: AUTO
+    }
+}
 
 enum class WidgetTextColor(val color: Color?) {
     AUTO(null),

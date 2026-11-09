@@ -26,8 +26,8 @@ sdk.dir=C\:\\Users\\<使用者>\\AppData\\Local\\Android\\Sdk
 版本位於 `app/build.gradle.kts` 的 `defaultConfig`：
 
 ```kotlin
-versionCode = 10
-versionName = "1.5.0"
+versionCode = 11
+versionName = "1.5.1"
 ```
 
 - `versionCode` 每次功能變更遞增。
@@ -101,7 +101,7 @@ app/build/outputs/apk/prerelease/app-prerelease.apk
 
 - 啟用 R8 程式碼壓縮與資源縮減
 - 使用 Android Debug 金鑰簽署
-- versionName 為 `1.5.0-prerelease`
+- versionName 為 `1.5.1-prerelease`
 - 僅供測試，不可上架 Google Play
 
 若要重新命名為發佈用檔名，可複製為 `app-prerelease.apk`（Gradle 預設輸出即為此名稱）。
@@ -135,10 +135,10 @@ app/build/outputs/apk/prerelease/app-prerelease.apk
 本專案以 `prerelease` APK 作為公開測試版，正式上架仍須改用 `release` 簽署。
 
 ```bash
-git tag v1.5.0
-git push origin v1.5.0
-gh release create v1.5.0 app/build/outputs/apk/prerelease/app-prerelease.apk \
-  --title "mini網頁筆記 1.5.0" \
+git tag v1.5.1
+git push origin v1.5.1
+gh release create v1.5.1 app/build/outputs/apk/prerelease/app-prerelease.apk \
+  --title "mini網頁筆記 1.5.1" \
   --notes-file RELEASE_NOTES.md \
   --prerelease
 ```

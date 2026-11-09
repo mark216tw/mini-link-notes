@@ -18,10 +18,19 @@ import androidx.lifecycle.lifecycleScope
 import com.vibecode.minilinknotes.MiniLinkNotesApp
 import com.vibecode.minilinknotes.data.AppSettings
 import com.vibecode.minilinknotes.ui.theme.MiniLinkNotesTheme
+import com.vibecode.minilinknotes.widget.DEFAULT_WIDGET_FONT_PERCENT
 import com.vibecode.minilinknotes.widget.LinkNoteWidget
+import com.vibecode.minilinknotes.widget.WidgetBackgroundColor
 import com.vibecode.minilinknotes.widget.WidgetTextColor
 import com.vibecode.minilinknotes.widget.normalizeWidgetFontPercent
 import kotlinx.coroutines.launch
+
+private data class StoredWidgetConfiguration(
+    val noteId: Long? = null,
+    val textColor: WidgetTextColor = WidgetTextColor.AUTO,
+    val backgroundColor: WidgetBackgroundColor = WidgetBackgroundColor.AUTO,
+    val fontPercent: Int = DEFAULT_WIDGET_FONT_PERCENT,
+)
 
 class LinkNoteWidgetConfigureActivity : ComponentActivity() {
 
@@ -63,18 +72,28 @@ class LinkNoteWidgetConfigureActivity : ComponentActivity() {
                     PreferencesGlanceStateDefinition,
                     glanceId,
                 )
-                Triple(
-                    preferences[LinkNoteWidget.noteIdKey],
-                    WidgetTextColor.fromPreference(preferences[LinkNoteWidget.textColorKey]),
-                    normalizeWidgetFontPercent(preferences[LinkNoteWidget.fontPercentKey]),
+                StoredWidgetConfiguration(
+                    noteId = preferences[LinkNoteWidget.noteIdKey],
+                    textColor = WidgetTextColor.fromPreference(
+                        preferences[LinkNoteWidget.textColorKey],
+                    ),
+                    backgroundColor = WidgetBackgroundColor.fromPreference(
+                        preferences[LinkNoteWidget.backgroundColorKey],
+                    ),
+                    fontPercent = normalizeWidgetFontPercent(
+                        preferences[LinkNoteWidget.fontPercentKey],
+                    ),
                 )
             }.getOrElse {
-                Triple(null, WidgetTextColor.AUTO, normalizeWidgetFontPercent(null))
+                StoredWidgetConfiguration(
+                    fontPercent = normalizeWidgetFontPercent(null),
+                )
             }
             viewModel.setInitialConfiguration(
-                noteId = storedConfiguration.first,
-                textColor = storedConfiguration.second,
-                fontPercent = storedConfiguration.third,
+                noteId = storedConfiguration.noteId,
+                textColor = storedConfiguration.textColor,
+                backgroundColor = storedConfiguration.backgroundColor,
+                fontPercent = storedConfiguration.fontPercent,
             )
         }
 
@@ -90,6 +109,7 @@ class LinkNoteWidgetConfigureActivity : ComponentActivity() {
                     onQueryChange = viewModel::setQuery,
                     onSelect = viewModel::select,
                     onTextColorChange = viewModel::setTextColor,
+                    onBackgroundColorChange = viewModel::setBackgroundColor,
                     onFontPercentChange = viewModel::setFontPercent,
                     onConfirm = {
                         if (state.arePreferencesLoaded) state.selectedNoteId?.let { noteId ->
@@ -100,6 +120,8 @@ class LinkNoteWidgetConfigureActivity : ComponentActivity() {
                                 ) { preferences ->
                                     preferences[LinkNoteWidget.noteIdKey] = noteId
                                     preferences[LinkNoteWidget.textColorKey] = state.textColor.name
+                                    preferences[LinkNoteWidget.backgroundColorKey] =
+                                        state.backgroundColor.name
                                     preferences[LinkNoteWidget.fontPercentKey] = state.fontPercent
                                 }
                                 LinkNoteWidget().update(this@LinkNoteWidgetConfigureActivity, glanceId)

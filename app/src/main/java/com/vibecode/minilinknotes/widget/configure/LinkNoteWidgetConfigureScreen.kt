@@ -1,7 +1,8 @@
 package com.vibecode.minilinknotes.widget.configure
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Tune
@@ -32,7 +34,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,8 +55,16 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,6 +89,7 @@ import com.vibecode.minilinknotes.ui.theme.WidgetTitleNight
 import com.vibecode.minilinknotes.widget.MAX_WIDGET_FONT_PERCENT
 import com.vibecode.minilinknotes.widget.MIN_WIDGET_FONT_PERCENT
 import com.vibecode.minilinknotes.widget.WIDGET_FONT_PERCENT_STEP
+import com.vibecode.minilinknotes.widget.WidgetBackgroundColor
 import com.vibecode.minilinknotes.widget.WidgetTextColor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,6 +100,7 @@ fun LinkNoteWidgetConfigureScreen(
     onQueryChange: (String) -> Unit,
     onSelect: (Long) -> Unit,
     onTextColorChange: (WidgetTextColor) -> Unit,
+    onBackgroundColorChange: (WidgetBackgroundColor) -> Unit,
     onFontPercentChange: (Int) -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
@@ -165,16 +176,18 @@ fun LinkNoteWidgetConfigureScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
-                    OutlinedButton(
-                        onClick = { showStyleDialog = true },
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Tune,
-                            contentDescription = null,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.widget_style_title))
+                        OutlinedButton(onClick = { showStyleDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Outlined.Tune,
+                                contentDescription = null,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.widget_style_title))
+                        }
                     }
                 }
                 when {
@@ -244,6 +257,7 @@ fun LinkNoteWidgetConfigureScreen(
                         state = state,
                         imageStorage = imageStorage,
                         onTextColorChange = onTextColorChange,
+                        onBackgroundColorChange = onBackgroundColorChange,
                         onFontPercentChange = onFontPercentChange,
                     )
                 }
@@ -262,37 +276,9 @@ private fun WidgetStyleControls(
     state: WidgetConfigureUiState,
     imageStorage: ImageStorage,
     onTextColorChange: (WidgetTextColor) -> Unit,
+    onBackgroundColorChange: (WidgetBackgroundColor) -> Unit,
     onFontPercentChange: (Int) -> Unit,
 ) {
-    Text(
-        text = stringResource(R.string.widget_text_color),
-        style = MaterialTheme.typography.labelLarge,
-    )
-    Spacer(modifier = Modifier.height(4.dp))
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        WidgetTextColor.entries.forEach { textColor ->
-            FilterChip(
-                selected = state.textColor == textColor,
-                onClick = { onTextColorChange(textColor) },
-                enabled = state.arePreferencesLoaded,
-                label = { Text(stringResource(textColor.labelResource())) },
-                leadingIcon = textColor.color?.let { color ->
-                    {
-                        Box(
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clip(CircleShape)
-                                .background(color),
-                        )
-                    }
-                },
-            )
-        }
-    }
-    Spacer(modifier = Modifier.height(8.dp))
     Text(
         text = stringResource(R.string.widget_font_size, state.fontPercent),
         style = MaterialTheme.typography.labelLarge,
@@ -304,6 +290,49 @@ private fun WidgetStyleControls(
         valueRange = MIN_WIDGET_FONT_PERCENT.toFloat()..MAX_WIDGET_FONT_PERCENT.toFloat(),
         steps = (MAX_WIDGET_FONT_PERCENT - MIN_WIDGET_FONT_PERCENT) / WIDGET_FONT_PERCENT_STEP - 1,
     )
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        text = stringResource(R.string.widget_text_color),
+        style = MaterialTheme.typography.labelLarge,
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        WidgetTextColor.entries.forEach { textColor ->
+            WidgetColorSwatch(
+                selected = state.textColor == textColor,
+                color = textColor.color,
+                autoColors = listOf(WidgetTitleDay, WidgetTitleNight),
+                label = stringResource(textColor.labelResource()),
+                enabled = state.arePreferencesLoaded,
+                onClick = { onTextColorChange(textColor) },
+            )
+        }
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        text = stringResource(R.string.widget_background_color),
+        style = MaterialTheme.typography.labelLarge,
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        WidgetBackgroundColor.entries.forEach { backgroundColor ->
+            WidgetColorSwatch(
+                selected = state.backgroundColor == backgroundColor,
+                color = backgroundColor.color,
+                autoColors = listOf(WidgetBackgroundDay, WidgetBackgroundNight),
+                label = stringResource(backgroundColor.labelResource()),
+                enabled = state.arePreferencesLoaded,
+                onClick = { onBackgroundColorChange(backgroundColor) },
+            )
+        }
+    }
+    Spacer(modifier = Modifier.height(8.dp))
     Text(
         text = stringResource(R.string.widget_preview),
         style = MaterialTheme.typography.labelLarge,
@@ -313,8 +342,67 @@ private fun WidgetStyleControls(
         note = state.selectedNote,
         imageStorage = imageStorage,
         textColor = state.textColor,
+        backgroundColor = state.backgroundColor,
         fontPercent = state.fontPercent,
     )
+}
+
+@Composable
+private fun WidgetColorSwatch(
+    selected: Boolean,
+    color: Color?,
+    autoColors: List<Color>,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val checkColor = if (color == null) {
+        if (autoColors.first().luminance() > 0.5f) Color.Black else Color.White
+    } else {
+        if (color.luminance() > 0.5f) Color.Black else Color.White
+    }
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clickable(
+                enabled = enabled,
+                role = Role.RadioButton,
+                onClickLabel = label,
+                onClick = onClick,
+            )
+            .semantics {
+                contentDescription = label
+                this.selected = selected
+                role = Role.RadioButton
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .then(
+                    if (color != null) {
+                        Modifier.background(color)
+                    } else {
+                        Modifier.background(Brush.linearGradient(autoColors))
+                    },
+                )
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = CircleShape,
+                ),
+        )
+        if (selected) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = checkColor,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
 }
 
 @Composable
@@ -322,14 +410,21 @@ private fun WidgetPreview(
     note: NoteEntity?,
     imageStorage: ImageStorage,
     textColor: WidgetTextColor,
+    backgroundColor: WidgetBackgroundColor,
     fontPercent: Int,
 ) {
     val dark = isSystemInDarkTheme()
     val selectedColor = textColor.color
-    val titleColor = selectedColor ?: if (dark) WidgetTitleNight else WidgetTitleDay
-    val bodyColor = selectedColor ?: if (dark) WidgetBodyNight else WidgetBodyDay
-    val linkColor = selectedColor ?: if (dark) WidgetLinkNight else WidgetLinkDay
-    val backgroundColor = if (dark) WidgetBackgroundNight else WidgetBackgroundDay
+    val customBackground = backgroundColor.color
+    val useDarkText = customBackground != null
+    val titleColor = selectedColor
+        ?: if (dark && !useDarkText) WidgetTitleNight else WidgetTitleDay
+    val bodyColor = selectedColor
+        ?: if (dark && !useDarkText) WidgetBodyNight else WidgetBodyDay
+    val linkColor = selectedColor
+        ?: if (dark && !useDarkText) WidgetLinkNight else WidgetLinkDay
+    val previewBackground = customBackground
+        ?: if (dark) WidgetBackgroundNight else WidgetBackgroundDay
     val scale = fontPercent / 100f
     val isLink = note?.type == NoteType.LINK
     val title = note?.title?.ifBlank {
@@ -346,7 +441,7 @@ private fun WidgetPreview(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(backgroundColor)
+                .background(previewBackground)
                 .padding(12.dp),
         ) {
             if (note == null) {
@@ -403,6 +498,17 @@ private fun WidgetPreview(
             }
         }
     }
+}
+
+private fun WidgetBackgroundColor.labelResource(): Int = when (this) {
+    WidgetBackgroundColor.AUTO -> R.string.widget_background_auto
+    WidgetBackgroundColor.LIGHT_YELLOW -> R.string.widget_background_light_yellow
+    WidgetBackgroundColor.LIGHT_GREEN -> R.string.widget_background_light_green
+    WidgetBackgroundColor.LIGHT_BLUE -> R.string.widget_background_light_blue
+    WidgetBackgroundColor.LIGHT_PINK -> R.string.widget_background_light_pink
+    WidgetBackgroundColor.LIGHT_PURPLE -> R.string.widget_background_light_purple
+    WidgetBackgroundColor.LIGHT_ORANGE -> R.string.widget_background_light_orange
+    WidgetBackgroundColor.LIGHT_GRAY -> R.string.widget_background_light_gray
 }
 
 private fun WidgetTextColor.labelResource(): Int = when (this) {
@@ -535,6 +641,7 @@ private fun LinkNoteWidgetConfigureScreenPreview() {
             onQueryChange = {},
             onSelect = {},
             onTextColorChange = {},
+            onBackgroundColorChange = {},
             onFontPercentChange = {},
             onConfirm = {},
             onCancel = {},

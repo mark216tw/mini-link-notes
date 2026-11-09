@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-11-09 - v1.5.1（versionCode 11，小工具背景顏色與樣式調整）
+
+### 目標
+讓桌面小工具可自訂淺色背景，並精簡樣式設定介面：按鈕更名為「小工具樣式」、字型大小移到最上方、文字與背景顏色以色塊呈現。
+
+### 變更
+- `ui/theme/Color.kt`：新增 7 個小工具淺色背景常數。
+- `widget/WidgetStyle.kt`：新增 `WidgetBackgroundColor`（自動＋7 色）與 `fromPreference()`。
+- `widget/LinkNoteWidget.kt`：新增 `background_color` 設定，套用自訂背景；深色模式下自訂淺底搭配「自動」文字時改用深色文字。
+- `widget/LinkNoteWidgetReceiver.kt`：刪除小工具時一併清除背景設定。
+- `widget/configure/LinkNoteWidgetConfigureViewModel.kt`、`LinkNoteWidgetConfigureActivity.kt`：新增背景顏色狀態、初始化與寫入。
+- `widget/configure/LinkNoteWidgetConfigureScreen.kt`：設定順序改為字型大小 → 文字顏色 → 背景顏色 → 預覽；顏色選項改為圓形色塊、不顯示文字，已選色塊只在中央顯示勾選圖示；「小工具樣式」按鈕縮短為文字長度並靠右；預覽同步套用背景與深色文字邏輯。
+- `res/values/strings.xml`：按鈕文字改為「小工具樣式」，新增背景顏色相關字串。
+- `README.md`：新增並補齊文件索引連結，更新小工具說明與版本。
+- `WidgetStyleTest.kt`：新增背景色偏好解析測試。
+- `docs/BUILD.md`：更新版本與發佈指令。
+- 版本升為 1.5.1（versionCode 11），建置 `prerelease` APK 作為 GitHub Pre-release。
+
+### 問題與解法
+- 「自動」沒有實際顏色可顯示 → 以色塊漸層呈現，並依首色亮度決定勾選圖示顏色。
+- 淺色背景在深色模式搭配自動淺色文字會難以辨識 → 選自訂背景時自動文字固定使用深色。
+
+### 待辦／已知限制
+- 尚未在實機確認色塊在不同螢幕尺寸與 TalkBack 下的操作體驗。
+
+---
+
 ## 2026-11-08 - v1.5.0（versionCode 10，圖片放大檢視）
 
 ### 目標

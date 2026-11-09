@@ -87,6 +87,7 @@ class LinkNoteWidget : GlanceAppWidget() {
                 appWidgetId = appWidgetId,
                 imageStorage = imageStorage,
                 textColor = WidgetTextColor.fromPreference(preferences[textColorKey]),
+                backgroundColor = WidgetBackgroundColor.fromPreference(preferences[backgroundColorKey]),
                 fontPercent = normalizeWidgetFontPercent(preferences[fontPercentKey]),
             )
         }
@@ -95,6 +96,7 @@ class LinkNoteWidget : GlanceAppWidget() {
     companion object {
         val noteIdKey = longPreferencesKey("note_id")
         val textColorKey = stringPreferencesKey("text_color")
+        val backgroundColorKey = stringPreferencesKey("background_color")
         val fontPercentKey = intPreferencesKey("font_percent")
     }
 }
@@ -114,21 +116,41 @@ private fun LinkNoteWidgetContent(
     appWidgetId: Int,
     imageStorage: ImageStorage,
     textColor: WidgetTextColor,
+    backgroundColor: WidgetBackgroundColor,
     fontPercent: Int,
 ) {
     val context = LocalContext.current
     val readyNote = (state as? WidgetDisplayState.Ready)?.note
     val openAction = readyNote?.let { openNoteAction(context, it.id) } ?: openAppAction(context)
     val selectedColor = textColor.color?.let { ColorProvider(day = it, night = it) }
+    val customBackground = backgroundColor.color
+    val autoTitleColor = if (customBackground == null) {
+        ColorProvider(day = WidgetTitleDay, night = WidgetTitleNight)
+    } else {
+        ColorProvider(day = WidgetTitleDay, night = WidgetTitleDay)
+    }
+    val autoBodyColor = if (customBackground == null) {
+        ColorProvider(day = WidgetBodyDay, night = WidgetBodyNight)
+    } else {
+        ColorProvider(day = WidgetBodyDay, night = WidgetBodyDay)
+    }
+    val autoLinkColor = if (customBackground == null) {
+        ColorProvider(day = WidgetLinkDay, night = WidgetLinkNight)
+    } else {
+        ColorProvider(day = WidgetLinkDay, night = WidgetLinkDay)
+    }
     val scale = fontPercent / 100f
-    val titleColor = selectedColor ?: ColorProvider(day = WidgetTitleDay, night = WidgetTitleNight)
-    val bodyColor = selectedColor ?: ColorProvider(day = WidgetBodyDay, night = WidgetBodyNight)
-    val linkColor = selectedColor ?: ColorProvider(day = WidgetLinkDay, night = WidgetLinkNight)
+    val titleColor = selectedColor ?: autoTitleColor
+    val bodyColor = selectedColor ?: autoBodyColor
+    val linkColor = selectedColor ?: autoLinkColor
 
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(day = WidgetBackgroundDay, night = WidgetBackgroundNight)
+            .background(
+                day = customBackground ?: WidgetBackgroundDay,
+                night = customBackground ?: WidgetBackgroundNight,
+            )
             .appWidgetBackground()
             .cornerRadius(12.dp)
             .clickable(openAction)

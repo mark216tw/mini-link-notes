@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.vibecode.minilinknotes.data.NoteEntity
 import com.vibecode.minilinknotes.data.NotesRepository
 import com.vibecode.minilinknotes.widget.DEFAULT_WIDGET_FONT_PERCENT
+import com.vibecode.minilinknotes.widget.WidgetBackgroundColor
 import com.vibecode.minilinknotes.widget.WidgetTextColor
 import com.vibecode.minilinknotes.widget.normalizeWidgetFontPercent
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,7 @@ data class WidgetConfigureUiState(
     val selectedNoteId: Long? = null,
     val query: String = "",
     val textColor: WidgetTextColor = WidgetTextColor.AUTO,
+    val backgroundColor: WidgetBackgroundColor = WidgetBackgroundColor.AUTO,
     val fontPercent: Int = DEFAULT_WIDGET_FONT_PERCENT,
     val arePreferencesLoaded: Boolean = false,
 )
@@ -30,6 +32,7 @@ data class WidgetConfigureUiState(
 private data class WidgetConfiguration(
     val selectedNoteId: Long? = null,
     val textColor: WidgetTextColor = WidgetTextColor.AUTO,
+    val backgroundColor: WidgetBackgroundColor = WidgetBackgroundColor.AUTO,
     val fontPercent: Int = DEFAULT_WIDGET_FONT_PERCENT,
     val isLoaded: Boolean = false,
 )
@@ -63,6 +66,7 @@ class LinkNoteWidgetConfigureViewModel(
             selectedNoteId = configuration.selectedNoteId,
             query = query,
             textColor = configuration.textColor,
+            backgroundColor = configuration.backgroundColor,
             fontPercent = configuration.fontPercent,
             arePreferencesLoaded = configuration.isLoaded,
         )
@@ -85,6 +89,10 @@ class LinkNoteWidgetConfigureViewModel(
         configurationFlow.value = configurationFlow.value.copy(textColor = textColor)
     }
 
+    fun setBackgroundColor(backgroundColor: WidgetBackgroundColor) {
+        configurationFlow.value = configurationFlow.value.copy(backgroundColor = backgroundColor)
+    }
+
     fun setFontPercent(fontPercent: Int) {
         configurationFlow.value = configurationFlow.value.copy(
             fontPercent = normalizeWidgetFontPercent(fontPercent),
@@ -94,12 +102,14 @@ class LinkNoteWidgetConfigureViewModel(
     fun setInitialConfiguration(
         noteId: Long?,
         textColor: WidgetTextColor,
+        backgroundColor: WidgetBackgroundColor,
         fontPercent: Int,
     ) {
         if (configurationFlow.value.isLoaded) return
         configurationFlow.value = WidgetConfiguration(
             selectedNoteId = noteId,
             textColor = textColor,
+            backgroundColor = backgroundColor,
             fontPercent = normalizeWidgetFontPercent(fontPercent),
             isLoaded = true,
         )

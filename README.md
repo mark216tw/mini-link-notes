@@ -19,7 +19,20 @@
 - 刪除後 Snackbar 復原；回收筒保留 30 天，可清空回收桶
 - ZIP 匯出／匯入（合併或覆蓋），含標籤關聯與圖片；可匯入舊版 JSON
 - 淺色／深色／跟隨系統、Android 12+ 動態色彩
-- 桌面小工具：每個小工具顯示一則筆記，可透過「小工具文字樣式」視窗調整文字顏色與 50%～500% 字型大小並即時預覽；點連結開啟瀏覽器，點其他區域開啟筆記編輯頁
+- 桌面小工具：每個小工具顯示一則筆記，可透過「小工具樣式」視窗調整字型大小（50%～500%）、文字顏色與背景顏色並即時預覽；點連結開啟瀏覽器，點其他區域開啟筆記編輯頁
+
+## 文件索引
+
+- [變更紀錄](CHANGELOG.md)
+- [版本發布說明](RELEASE_NOTES.md)
+- [使用者指南](docs/USER_GUIDE.md)
+- [開發紀錄](docs/DEV_LOG.md)
+- [建置與發佈](docs/BUILD.md)
+- [架構說明](docs/ARCHITECTURE.md)
+- [設計說明](docs/DESIGN.md)
+- [隱私權說明](docs/PRIVACY.md)
+- [授權條款](LICENSE)
+- [開發規範](AGENTS.md)
 
 ## 建置
 
@@ -33,7 +46,7 @@
 ```
 
 - `applicationId`：`com.vibecode.minilinknotes`
-- 版本：`1.5.0`（versionCode 10）
+- 版本：`1.5.1`（versionCode 11）
 - 測試版輸出：`app/build/outputs/apk/prerelease/`
 
 ## 權限與隱私

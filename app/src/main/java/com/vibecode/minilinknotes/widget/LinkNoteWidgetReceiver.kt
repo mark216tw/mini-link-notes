@@ -30,6 +30,7 @@ class LinkNoteWidgetReceiver : GlanceAppWidgetReceiver() {
                         ) { preferences ->
                             preferences.remove(LinkNoteWidget.noteIdKey)
                             preferences.remove(LinkNoteWidget.textColorKey)
+                            preferences.remove(LinkNoteWidget.backgroundColorKey)
                             preferences.remove(LinkNoteWidget.fontPercentKey)
                         }
                     }

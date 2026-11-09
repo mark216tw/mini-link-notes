@@ -30,4 +30,14 @@ class WidgetStyleTest {
         assertEquals(WidgetTextColor.AUTO, WidgetTextColor.fromPreference("UNKNOWN"))
         assertEquals(WidgetTextColor.BLUE, WidgetTextColor.fromPreference("BLUE"))
     }
+
+    @Test
+    fun backgroundColor_fallsBackToAuto() {
+        assertEquals(WidgetBackgroundColor.AUTO, WidgetBackgroundColor.fromPreference(null))
+        assertEquals(WidgetBackgroundColor.AUTO, WidgetBackgroundColor.fromPreference("UNKNOWN"))
+        assertEquals(
+            WidgetBackgroundColor.LIGHT_BLUE,
+            WidgetBackgroundColor.fromPreference("LIGHT_BLUE"),
+        )
+    }
 }
