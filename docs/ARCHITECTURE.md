@@ -99,6 +99,7 @@ com.vibecode.minilinknotes/
 │   ├── ReminderScheduler.kt     # AlarmManager 排程與同步
 │   ├── ReminderNotifier.kt      # 通知頻道與推播
 │   ├── ReminderReceiver.kt      # 鬧鐘觸發、通知並停用
+│   ├── ReminderPermissions.kt   # 通知權限與精確鬧鐘狀態／系統設定
 │   └── ReminderRescheduleReceiver.kt # 開機／時間變更後重排
 ├── ui/
 │   ├── MiniLinkNotesRoot.kt     # NavHost、Snackbar
@@ -250,6 +251,7 @@ MainActivity.onNewIntent
 - App 啟動時同步提醒；逾期且仍啟用者立即補發並停用。
 - 軟刪除會取消鬧鐘並停用提醒，復原後不自動重新啟用。
 - 匯入覆蓋前取消所有鬧鐘，匯入後重新同步目前筆記。
+- 設定頁透過 `ReminderPermissions` 檢查通知與精確鬧鐘狀態，並開啟對應的系統設定頁；回到畫面時重新讀取。
 
 ## 8. JSON 備份格式
 

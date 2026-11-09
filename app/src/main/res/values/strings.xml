@@ -28,6 +28,7 @@
     <string name="action_confirm_delete">永久刪除</string>
     <string name="action_overwrite">覆蓋匯入</string>
     <string name="action_merge">合併匯入</string>
+    <string name="action_open_settings">前往設定</string>
 
     <string name="notes_title">網頁筆記</string>
     <string name="notes_total_count">%1$d 則筆記</string>
@@ -163,6 +164,17 @@
     <string name="settings_behavior">行為</string>
     <string name="settings_auto_title">自動取得網頁標題</string>
     <string name="settings_auto_title_desc">新增或分享連結時，連線到網頁讀取標題</string>
+    <string name="settings_reminders">提醒</string>
+    <string name="settings_notification_permission">通知權限</string>
+    <string name="settings_notification_permission_desc">提醒時間到時顯示通知所需</string>
+    <string name="settings_notification_enabled">已允許通知</string>
+    <string name="settings_notification_disabled">未允許通知，提醒不會顯示</string>
+    <string name="settings_exact_alarm">精確提醒</string>
+    <string name="settings_exact_alarm_desc">在設定的時間準時發出提醒</string>
+    <string name="settings_exact_alarm_enabled">已允許精確鬧鐘</string>
+    <string name="settings_exact_alarm_disabled">未允許精確鬧鐘，提醒可能延遲</string>
+    <string name="settings_exact_alarm_not_required">Android 12 以下不需設定</string>
+    <string name="settings_open_failed">無法開啟系統設定</string>
     <string name="settings_data">資料</string>
     <string name="settings_export">匯出備份</string>
     <string name="settings_export_desc">匯出所有未刪除的筆記、標籤與圖片（ZIP）</string>

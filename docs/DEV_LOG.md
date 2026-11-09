@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-11-09 - v1.7.0（versionCode 13，設定頁提醒權限）
+
+### 目標
+在設定頁顯示通知權限與精確提醒的目前狀態，並提供前往系統設定的入口，讓使用者能自行修正提醒無法顯示或延遲的問題。
+
+### 變更
+- 新增 `reminder/ReminderPermissions.kt`：集中判斷通知是否啟用、Android 13+ 通知權限、精確鬧鐘是否可用，並提供開啟系統通知設定與精確鬧鐘設定的 Intent。
+- `ui/settings/SettingsScreen.kt`：新增「提醒」區塊，顯示通知權限與精確提醒狀態；通知未授予時先請求權限，拒絕後開啟通知設定；精確提醒可前往系統設定；回到畫面時重新讀取狀態。
+- `res/values/strings.xml`：新增提醒區塊標題、狀態、按鈕與失敗提示文案。
+- `app/build.gradle.kts`：版本升為 1.7.0（versionCode 13）。
+- 同步更新 `README.md`、`CHANGELOG.md`、`RELEASE_NOTES.md`、`docs/BUILD.md`、`docs/USER_GUIDE.md`、`docs/DESIGN.md`、`docs/ARCHITECTURE.md`。
+- 建置 `1.7.0-prerelease` APK，發佈 GitHub Pre-release（v1.7.0）。
+
+### 問題與解法
+- 從系統設定返回後狀態不會自動更新 → 以 `LifecycleResumeEffect` 在畫面恢復時重新讀取。
+- Android 13+ 未授予通知權限時直接開設定頁體驗較差 → 先跳系統權限請求，拒絕後再開啟 App 通知設定。
+- 部分裝置的系統設定 Activity 可能不存在 → 以 `runCatching` 包裹並顯示提示。
+- 設定頁圖示在支援文字換行時被 `ListItem` 視為三行項目而置頂，與標題不對齊 → 將圖示與標題放入同一個 headline `Row`，並把「前往設定」按鈕也放在同一列。
+
+### 待辦／已知限制
+- 尚未在實機驗證各品牌系統設定頁的跳轉與返回後狀態更新。
+- 通知頻道被個別關閉時，僅顯示 App 層級通知狀態，未細分頻道狀態。
+
+---
+
 ## 2026-11-09 - v1.6.0（versionCode 12，筆記提醒）
 
 ### 目標

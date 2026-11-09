@@ -1,5 +1,6 @@
 ﻿package com.vibecode.minilinknotes.ui.settings
 
+import android.Manifest
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -8,16 +9,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -35,14 +40,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.vibecode.minilinknotes.AppViewModel
 import com.vibecode.minilinknotes.R
 import com.vibecode.minilinknotes.data.AppSettings
 import com.vibecode.minilinknotes.data.DisplayMode
 import com.vibecode.minilinknotes.data.backup.ImportMode
+import com.vibecode.minilinknotes.reminder.ReminderPermissions
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -59,6 +69,47 @@ fun SettingsScreen(
     var showModeDialog by remember { mutableStateOf(false) }
     var showReplaceConfirm by remember { mutableStateOf(false) }
     var replaceUri by remember { mutableStateOf<Uri?>(null) }
+
+    val context = LocalContext.current
+    var notificationsEnabled by remember {
+        mutableStateOf(ReminderPermissions.notificationsEnabled(context))
+    }
+    var notificationPermissionGranted by remember {
+        mutableStateOf(ReminderPermissions.hasNotificationPermission(context))
+    }
+    var exactAlarmsAllowed by remember {
+        mutableStateOf(ReminderPermissions.canScheduleExactAlarms(context))
+    }
+
+    fun refreshReminderPermissions() {
+        notificationsEnabled = ReminderPermissions.notificationsEnabled(context)
+        notificationPermissionGranted = ReminderPermissions.hasNotificationPermission(context)
+        exactAlarmsAllowed = ReminderPermissions.canScheduleExactAlarms(context)
+    }
+
+    fun openNotificationSettings() {
+        runCatching { ReminderPermissions.openNotificationSettings(context) }
+            .onFailure { viewModel.showMessage(R.string.settings_open_failed) }
+    }
+
+    fun openExactAlarmSettings() {
+        runCatching { ReminderPermissions.openExactAlarmSettings(context) }
+            .onFailure { viewModel.showMessage(R.string.settings_open_failed) }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        refreshReminderPermissions()
+        if (!granted) {
+            openNotificationSettings()
+        }
+    }
+
+    LifecycleResumeEffect(Unit) {
+        refreshReminderPermissions()
+        onPauseOrDispose { }
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/zip"),
@@ -154,11 +205,128 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
+            SectionHeader(stringResource(R.string.settings_reminders))
+            ListItem(
+                headlineContent = {
+                    SettingsItemTitle(
+                        icon = Icons.Outlined.NotificationsActive,
+                        title = stringResource(R.string.settings_notification_permission),
+                        trailing = {
+                            TextButton(
+                                onClick = {
+                                    if (!notificationPermissionGranted &&
+                                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                                    ) {
+                                        notificationPermissionLauncher.launch(
+                                            Manifest.permission.POST_NOTIFICATIONS,
+                                        )
+                                    } else {
+                                        openNotificationSettings()
+                                    }
+                                },
+                            ) {
+                                Text(stringResource(R.string.action_open_settings))
+                            }
+                        },
+                    )
+                },
+                supportingContent = {
+                    Column(
+                        modifier = Modifier.padding(start = 40.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_notification_permission_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = stringResource(
+                                if (notificationsEnabled) {
+                                    R.string.settings_notification_enabled
+                                } else {
+                                    R.string.settings_notification_disabled
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (notificationsEnabled) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            },
+                        )
+                    }
+                },
+            )
+            ListItem(
+                headlineContent = {
+                    SettingsItemTitle(
+                        icon = Icons.Outlined.Alarm,
+                        title = stringResource(R.string.settings_exact_alarm),
+                        trailing = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            {
+                                TextButton(onClick = { openExactAlarmSettings() }) {
+                                    Text(stringResource(R.string.action_open_settings))
+                                }
+                            }
+                        } else {
+                            null
+                        },
+                    )
+                },
+                supportingContent = {
+                    Column(
+                        modifier = Modifier.padding(start = 40.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.settings_exact_alarm_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            Text(
+                                text = stringResource(
+                                    if (exactAlarmsAllowed) {
+                                        R.string.settings_exact_alarm_enabled
+                                    } else {
+                                        R.string.settings_exact_alarm_disabled
+                                    },
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (exactAlarmsAllowed) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.error
+                                },
+                            )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.settings_exact_alarm_not_required),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                },
+            )
+
+            HorizontalDivider()
+
             SectionHeader(stringResource(R.string.settings_data))
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_export)) },
-                supportingContent = { Text(stringResource(R.string.settings_export_desc)) },
-                leadingContent = { Icon(Icons.Outlined.FileUpload, contentDescription = null) },
+                headlineContent = {
+                    SettingsItemTitle(
+                        icon = Icons.Outlined.FileUpload,
+                        title = stringResource(R.string.settings_export),
+                    )
+                },
+                supportingContent = {
+                    Text(
+                        text = stringResource(R.string.settings_export_desc),
+                        modifier = Modifier.padding(start = 40.dp),
+                    )
+                },
                 modifier = Modifier.clickable {
                     val name = "mini-link-notes-" +
                         SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date()) + ".zip"
@@ -166,9 +334,18 @@ fun SettingsScreen(
                 },
             )
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_import)) },
-                supportingContent = { Text(stringResource(R.string.settings_import_desc)) },
-                leadingContent = { Icon(Icons.Outlined.FileDownload, contentDescription = null) },
+                headlineContent = {
+                    SettingsItemTitle(
+                        icon = Icons.Outlined.FileDownload,
+                        title = stringResource(R.string.settings_import),
+                    )
+                },
+                supportingContent = {
+                    Text(
+                        text = stringResource(R.string.settings_import_desc),
+                        modifier = Modifier.padding(start = 40.dp),
+                    )
+                },
                 modifier = Modifier.clickable {
                     importLauncher.launch(arrayOf("*/*"))
                 },
@@ -177,8 +354,12 @@ fun SettingsScreen(
             HorizontalDivider()
 
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_about)) },
-                leadingContent = { Icon(Icons.Outlined.Info, contentDescription = null) },
+                headlineContent = {
+                    SettingsItemTitle(
+                        icon = Icons.Outlined.Info,
+                        title = stringResource(R.string.settings_about),
+                    )
+                },
                 modifier = Modifier.clickable(onClick = onOpenAbout),
             )
 
@@ -271,6 +452,27 @@ fun SettingsScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun SettingsItemTitle(
+    icon: ImageVector,
+    title: String,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.width(16.dp))
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+        )
+        trailing?.invoke()
     }
 }
 
