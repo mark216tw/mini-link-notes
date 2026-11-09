@@ -14,7 +14,7 @@
 | 編譯／目標版本 | compileSdk 36 / targetSdk 36 |
 | Java / JVM Target | 17 |
 | 建置系統 | Gradle Kotlin DSL + Version Catalog |
-| 目前版本 | `1.5.0`（versionCode 10） |
+| 目前版本 | `1.6.0`（versionCode 12） |
 | 授權 | MIT |
 
 ## 2. 技術基線
@@ -95,6 +95,11 @@ com.vibecode.minilinknotes/
 │       ├── BackupModels.kt      # 備份 DTO、版本、錯誤
 │       ├── BackupCodec.kt       # JSON 編解碼
 │       └── BackupManager.kt     # 匯入／匯出
+├── reminder/
+│   ├── ReminderScheduler.kt     # AlarmManager 排程與同步
+│   ├── ReminderNotifier.kt      # 通知頻道與推播
+│   ├── ReminderReceiver.kt      # 鬧鐘觸發、通知並停用
+│   └── ReminderRescheduleReceiver.kt # 開機／時間變更後重排
 ├── ui/
 │   ├── MiniLinkNotesRoot.kt     # NavHost、Snackbar
 │   ├── notes/NotesScreen.kt     # 清單、搜尋、篩選、排序
@@ -137,7 +142,7 @@ notes 1 ─── N note_tag N ─── 1 tags
 | 欄位 | 型別 | 說明 |
 | --- | --- | --- |
 | `id` | Long | 自動遞增主鍵 |
-| `type` | NoteType | `LINK` 或 `TEXT` |
+| `type` | NoteType | `LINK`、`TEXT` 或 `IMAGE` |
 | `title` | String | 標題，可為空字串 |
 | `url` | String? | 連結筆記網址 |
 | `content` | String? | 文字內容或連結補充 |
@@ -147,8 +152,10 @@ notes 1 ─── N note_tag N ─── 1 tags
 | `deletedAt` | Long? | 軟刪除時間；非 null 表示在回收筒 |
 | `titleFetchState` | TitleFetchState | `NONE`、`SUCCESS`、`FAILED` |
 | `titleEdited` | Boolean | 使用者是否手動改過標題 |
+| `reminderAt` | Long? | 提醒時間（epoch millis） |
+| `reminderEnabled` | Boolean | 提醒是否啟用；通知後自動設為 false |
 
-索引：`deletedAt`、`createdAt`。`isRead` 與 `url` 的一般索引已在 schema v2 移除，降低寫入成本。
+索引：`deletedAt`、`createdAt`、`imageSha256`、`reminderEnabled`。`isRead` 與 `url` 的一般索引已在 schema v2 移除，降低寫入成本。
 
 ### 6.3 `tags` 欄位
 
@@ -161,9 +168,11 @@ notes 1 ─── N note_tag N ─── 1 tags
 
 ### 6.4 資料庫版本與 Migration
 
-- 目前 `version = 2`，`exportSchema = true`，schema 輸出到 `app/schemas/`。
+- 目前 `version = 4`，`exportSchema = true`，schema 輸出到 `app/schemas/`。
 - `MIGRATION_1_2` 以 `DROP INDEX IF EXISTS` 移除 `index_notes_isRead`、`index_notes_url`。
-- 尚未提供 2→3；未來變更 schema 必須新增 migration。
+- `MIGRATION_2_3` 新增圖片欄位與 `imageSha256` 索引。
+- `MIGRATION_3_4` 新增 `reminderAt`、`reminderEnabled` 與 `reminderEnabled` 索引。
+- 未來變更 schema 必須新增 migration。
 
 ## 7. 資料流
 
@@ -223,6 +232,24 @@ MainActivity.onNewIntent
   - **MERGE**：保留現有資料；連結以 `UrlUtils.dedupeKey` 比對，文字以完整內容比對。
   - **REPLACE**：先清空 `note_tag`、`notes`、`tags`，再匯入。
 - `schemaVersion` 高於目前版本時拒絕匯入，避免資料誤解。
+- 手動備份不含提醒設定，匯入後提醒皆為停用。
+
+### 7.6 提醒排程與通知
+
+```
+編輯頁設定提醒
+  → NotesRepository 儲存 reminderAt / reminderEnabled
+  → ReminderScheduler 以 AlarmManager 排程 PendingIntent
+  → 時間到 ReminderReceiver
+  → 讀取筆記、ReminderNotifier 發送通知
+  → reminderEnabled = false（自動停用）
+```
+
+- Android 12 以上若可使用精確鬧鐘，採 `setExactAndAllowWhileIdle`；否則退回 `setAndAllowWhileIdle`。
+- `BOOT_COMPLETED`、`MY_PACKAGE_REPLACED`、`TIME_SET`、`TIMEZONE_CHANGED` 會呼叫 `syncAll()` 重建排程。
+- App 啟動時同步提醒；逾期且仍啟用者立即補發並停用。
+- 軟刪除會取消鬧鐘並停用提醒，復原後不自動重新啟用。
+- 匯入覆蓋前取消所有鬧鐘，匯入後重新同步目前筆記。
 
 ## 8. JSON 備份格式
 
@@ -308,7 +335,7 @@ R8 規則位於 `app/proguard-rules.pro`。`prerelease` 以 `initWith(release)` 
 
 ## 13. 安全性與隱私
 
-- 只宣告 `INTERNET` 權限。
+- 宣告 `INTERNET`、`POST_NOTIFICATIONS`、`RECEIVE_BOOT_COMPLETED`、`SCHEDULE_EXACT_ALARM`。
 - 無帳號、無雲端同步、無分析 SDK。
 - 備份由使用者主動選擇儲存位置，App 不自動上傳。
 - 網址只接受 `http`／`https`，且拒絕含 userInfo 的網址，降低惡意連結風險。
@@ -321,5 +348,7 @@ R8 規則位於 `app/proguard-rules.pro`。`prerelease` 以 `initWith(release)` 
 - 標題抓取對 JavaScript 動態渲染、需登入或反爬網站會失敗。
 - 尚未提供資料庫加密。
 - 尚未提供 UI 自動化測試與 migration 測試。
+- 提醒在部分品牌省電機制下可能延遲；精確鬧鐘權限不可用時會退回非精確排程。
+- 手動備份不含提醒設定。
 - `prerelease` 使用 debug key，不可用於正式上架。
 - 尚未在實機驗證所有品牌桌面圖示遮罩與分享選單行為。

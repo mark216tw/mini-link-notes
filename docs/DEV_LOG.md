@@ -4,6 +4,46 @@
 
 ---
 
+## 2026-11-09 - v1.6.0（versionCode 12，筆記提醒）
+
+### 目標
+讓每則筆記可設定一組提醒日期時間，時間到以推播通知提醒；提醒可啟用／停用，通知後自動停用，筆記清單以鈴鐺與時間標示啟用中的提醒。
+
+### 變更
+- `data/Model.kt`：`NoteEntity` 新增 `reminderAt`、`reminderEnabled` 與索引；新增 `ReminderEntry` 查詢投影。
+- `data/AppDatabase.kt`：資料庫版本升至 4，新增 `MIGRATION_3_4`。
+- `data/NotesDao.kt`：新增提醒查詢、同步排程查詢與 `setReminderEnabled`。
+- 新增 `reminder/ReminderScheduler.kt`：AlarmManager 排程，Android 12+ 優先精確鬧鐘、不可用時退回非精確；支援取消與重新同步。
+- 新增 `reminder/ReminderNotifier.kt`：建立「筆記提醒」通知頻道與推播通知，點擊開啟對應筆記編輯頁。
+- 新增 `reminder/ReminderReceiver.kt`：收到鬧鐘後顯示通知並自動停用提醒。
+- 新增 `reminder/ReminderRescheduleReceiver.kt`：開機、App 更新、時間或時區變更後重新排程。
+- `MiniLinkNotesApp.kt`：建立通知頻道、注入排程器，啟動時同步提醒。
+- `data/NotesRepository.kt`：新增／更新筆記時重設鬧鐘；刪除取消鬧鐘並停用提醒；清空回收筒與過期清除後重新同步。
+- `AppViewModel.kt`、`MainActivity.kt`：注入排程器；匯入備份前取消鬧鐘、匯入後重新同步。
+- `ui/editor/EditorScreen.kt`：新增提醒開關、日期與時間選擇、通知權限請求與時間驗證。
+- `ui/notes/NotesScreen.kt`：啟用中的提醒顯示鈴鐺圖示與日期時間。
+- `widget/LinkNoteWidget.kt`：啟用中的提醒在小工具最下方顯示鈴鐺圖示與日期時間，日期時間字型較小。
+- `AndroidManifest.xml`：新增 `POST_NOTIFICATIONS`、`RECEIVE_BOOT_COMPLETED`、`SCHEDULE_EXACT_ALARM` 與兩個 Receiver。
+- `res/drawable/ic_notification.xml`：新增通知小圖示。
+- `res/values/strings.xml`：新增提醒相關文案。
+- 新增 `util/ReminderUtils.kt` 與 `ReminderUtilsTest`：預設時間、日期／時間組合與有效性測試。
+- 版本升為 1.6.0（versionCode 12）。
+
+### 問題與解法
+- Android 14 起精確鬧鐘權限預設不開放 → 以 `canScheduleExactAlarms()` 判斷，不可用時改用非精確鬧鐘，仍可收到提醒。
+- 裝置關機或 App 被強制停止時鬧鐘會消失 → 開機與 App 啟動時重新同步；已逾期且仍啟用的提醒立即補發通知後停用。
+- 刪除筆記後鬧鐘仍可能存在 → 軟刪除時取消鬧鐘並停用提醒，永久刪除時再次取消。
+- 匯入覆蓋會清空筆記，舊鬧鐘可能殘留 → 匯入前取消全部鬧鐘，匯入後重新同步。
+- 通知權限可能在啟用後被撤銷 → 發送失敗時仍將提醒視為已消耗並停用，避免重複觸發。
+- 既有安裝升級後啟動閃退 → `MIGRATION_3_4` 已建立但漏加進 `addMigrations`，補上註冊後可正常從 schema 3 升級至 4。
+
+### 待辦／已知限制
+- 尚未在實機驗證精確／非精確鬧鐘的延遲、各品牌省電機制與重開機後補發行為。
+- 手動備份不含提醒設定，匯入後筆記提醒皆為停用。
+- Android 13 以下若系統通知被關閉，需自行到系統設定開啟，App 無法以對話框引導。
+
+---
+
 ## 2026-11-09 - v1.5.1（versionCode 11，小工具背景顏色與樣式調整）
 
 ### 目標

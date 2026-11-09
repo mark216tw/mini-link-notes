@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Label
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Search
@@ -93,6 +94,7 @@ import com.vibecode.minilinknotes.data.TagWithNoteCount
 import com.vibecode.minilinknotes.data.ImageStorage
 import com.vibecode.minilinknotes.ui.components.NoteImage
 import com.vibecode.minilinknotes.ui.theme.tagColor
+import com.vibecode.minilinknotes.util.TimeUtils
 import com.vibecode.minilinknotes.util.UrlUtils
 import kotlinx.coroutines.launch
 
@@ -577,6 +579,7 @@ private fun NoteCard(
         DateUtils.MINUTE_IN_MILLIS,
         DateUtils.FORMAT_ABBREV_RELATIVE,
     ).toString()
+    val reminderAt = note.reminderAt
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -690,11 +693,28 @@ private fun NoteCard(
                 }
 
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    text = relativeTime,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = relativeTime,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (note.reminderEnabled && reminderAt != null) {
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Outlined.NotificationsActive,
+                            contentDescription = stringResource(R.string.reminder_content_description),
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(2.dp))
+                        Text(
+                            text = TimeUtils.formatDateTime(reminderAt),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
             }
 
             Box {

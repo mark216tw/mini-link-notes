@@ -106,6 +106,17 @@
     <string name="editor_unsaved_message">返回後，這次的修改不會被保留。</string>
     <string name="action_discard">放棄</string>
 
+    <string name="reminder_section">提醒</string>
+    <string name="reminder_enable">啟用提醒</string>
+    <string name="reminder_pick_date">選擇日期</string>
+    <string name="reminder_pick_time">選擇時間</string>
+    <string name="reminder_invalid_time">提醒時間需晚於現在</string>
+    <string name="reminder_permission_denied">需要通知權限才能啟用提醒，請到系統設定開啟。</string>
+    <string name="reminder_content_description">提醒時間</string>
+    <string name="reminder_notification_text">提醒時間到了</string>
+    <string name="reminder_channel_name">筆記提醒</string>
+    <string name="reminder_channel_description">在設定的時間提醒你查看筆記</string>
+
     <string name="tag_title">標籤管理</string>
     <string name="tag_add">新增標籤</string>
     <string name="tag_edit">編輯標籤</string>

@@ -3,6 +3,7 @@
 import android.database.sqlite.SQLiteConstraintException
 import android.net.Uri
 import androidx.room.withTransaction
+import com.vibecode.minilinknotes.reminder.ReminderScheduler
 import com.vibecode.minilinknotes.util.SharedContent
 import com.vibecode.minilinknotes.util.TimeUtils
 import com.vibecode.minilinknotes.util.UrlUtils
@@ -19,6 +20,8 @@ data class NoteDraft(
     val imageSha256: String? = null,
     val tagIds: List<Long> = emptyList(),
     val titleManuallyEdited: Boolean = false,
+    val reminderAt: Long? = null,
+    val reminderEnabled: Boolean = false,
 )
 
 data class CreateNoteResult(
@@ -34,6 +37,7 @@ class NotesRepository(
     private val settingsStore: SettingsStore,
     private val titleFetcher: TitleFetcher,
     private val imageStorage: ImageStorage,
+    private val reminderScheduler: ReminderScheduler,
 ) {
 
     val activeNotes: Flow<List<NoteWithTags>> = dao.observeActiveNotes()
@@ -80,10 +84,15 @@ class NotesRepository(
                     createdAt = now,
                     updatedAt = now,
                     titleEdited = normalized.titleManuallyEdited,
+                    reminderAt = normalized.reminderAt,
+                    reminderEnabled = normalized.reminderEnabled,
                 ),
             )
             replaceTags(noteId, normalized.tagIds)
             CreateNoteResult(noteId, duplicate)
+        }
+        if (normalized.reminderEnabled && normalized.reminderAt != null) {
+            reminderScheduler.schedule(result.id, normalized.reminderAt)
         }
         return result
     }
@@ -132,12 +141,18 @@ class NotesRepository(
                         titleEdited = titleEdited,
                         titleFetchState = if (urlChanged) TitleFetchState.NONE else existing!!.titleFetchState,
                         updatedAt = now,
+                        reminderAt = normalized.reminderAt,
+                        reminderEnabled = normalized.reminderEnabled,
                     ),
                 )
                 replaceTags(id, normalized.tagIds)
             }
             if (existing?.imageFileName != normalized.imageFileName) {
                 imageStorage.delete(existing?.imageFileName)
+            }
+            reminderScheduler.cancel(id)
+            if (normalized.reminderEnabled && normalized.reminderAt != null) {
+                reminderScheduler.schedule(id, normalized.reminderAt)
             }
             Result.success(Unit)
         } catch (error: Throwable) {
@@ -161,6 +176,8 @@ class NotesRepository(
     suspend fun softDelete(id: Long) {
         val now = System.currentTimeMillis()
         dao.setDeletedAt(id, now, now)
+        dao.setReminderEnabled(id, false, now)
+        reminderScheduler.cancel(id)
     }
 
     suspend fun restore(id: Long) {
@@ -169,6 +186,7 @@ class NotesRepository(
 
     suspend fun purge(id: Long) {
         val imageFileName = dao.getNoteEntity(id)?.imageFileName
+        reminderScheduler.cancel(id)
         dao.deleteNotePermanently(id)
         imageStorage.delete(imageFileName)
     }

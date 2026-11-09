@@ -50,6 +50,15 @@ interface NotesDao {
     @Query("SELECT imageFileName FROM notes WHERE deletedAt IS NOT NULL AND deletedAt < :before AND imageFileName IS NOT NULL")
     suspend fun getExpiredTrashImageFileNames(before: Long): List<String>
 
+    @Query("SELECT id, reminderAt FROM notes WHERE deletedAt IS NULL AND reminderEnabled = 1 AND reminderAt IS NOT NULL")
+    suspend fun getEnabledReminders(): List<ReminderEntry>
+
+    @Query("SELECT id FROM notes WHERE reminderAt IS NOT NULL")
+    suspend fun getReminderNoteIds(): List<Long>
+
+    @Query("UPDATE notes SET reminderEnabled = :enabled, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun setReminderEnabled(id: Long, enabled: Boolean, updatedAt: Long)
+
     @Transaction
     @Query("SELECT * FROM notes WHERE deletedAt IS NULL ORDER BY createdAt DESC")
     suspend fun getActiveNotesWithTags(): List<NoteWithTags>

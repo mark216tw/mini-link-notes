@@ -9,6 +9,8 @@ import com.vibecode.minilinknotes.data.NotesRepository
 import com.vibecode.minilinknotes.data.SettingsStore
 import com.vibecode.minilinknotes.data.TitleFetcher
 import com.vibecode.minilinknotes.data.backup.BackupManager
+import com.vibecode.minilinknotes.reminder.ReminderNotifier
+import com.vibecode.minilinknotes.reminder.ReminderScheduler
 import com.vibecode.minilinknotes.widget.LinkNoteWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +26,7 @@ class MiniLinkNotesApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        ReminderNotifier.createChannel(this)
         container = AppContainer(this)
         container.purgeExpiredTrash()
     }
@@ -37,12 +40,17 @@ class AppContainer(context: Context) {
         appContext,
         AppDatabase::class.java,
         "mini-link-notes.db",
-    ).addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3).build()
+    ).addMigrations(
+        AppDatabase.MIGRATION_1_2,
+        AppDatabase.MIGRATION_2_3,
+        AppDatabase.MIGRATION_3_4,
+    ).build()
 
     private val notesDao = database.notesDao()
     val settingsStore = SettingsStore(appContext)
     private val titleFetcher = TitleFetcher()
     val imageStorage = ImageStorage(appContext)
+    val reminderScheduler = ReminderScheduler(appContext, notesDao)
 
     val repository = NotesRepository(
         database = database,
@@ -50,6 +58,7 @@ class AppContainer(context: Context) {
         settingsStore = settingsStore,
         titleFetcher = titleFetcher,
         imageStorage = imageStorage,
+        reminderScheduler = reminderScheduler,
     )
 
     val backupManager = BackupManager(
@@ -63,6 +72,9 @@ class AppContainer(context: Context) {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     init {
+        applicationScope.launch {
+            runCatching { reminderScheduler.syncAll() }
+        }
         applicationScope.launch {
             repository.activeNoteEntities.collect {
                 runCatching { LinkNoteWidget().updateAll(appContext) }

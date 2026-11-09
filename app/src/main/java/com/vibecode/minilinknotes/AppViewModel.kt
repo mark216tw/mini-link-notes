@@ -22,6 +22,7 @@ import com.vibecode.minilinknotes.data.backup.BackupException
 import com.vibecode.minilinknotes.data.backup.BackupManager
 import com.vibecode.minilinknotes.data.backup.ImportError
 import com.vibecode.minilinknotes.data.backup.ImportMode
+import com.vibecode.minilinknotes.reminder.ReminderScheduler
 import com.vibecode.minilinknotes.util.SharedContent
 import java.text.Collator
 import java.util.Locale
@@ -71,6 +72,7 @@ class AppViewModel(
     private val repository: NotesRepository,
     private val settingsStore: SettingsStore,
     private val backupManager: BackupManager,
+    private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
 
     private data class Snapshot(
@@ -352,15 +354,20 @@ class AppViewModel(
 
     fun import(uri: Uri, mode: ImportMode) {
         viewModelScope.launch {
-            runCatching { backupManager.importFrom(uri, mode) }
-                .onSuccess { count ->
-                    emitEvent(
-                        SnackbarEvent(appContext.getString(R.string.settings_import_success, count)),
-                    )
-                }
-                .onFailure { error ->
-                    emitEvent(SnackbarEvent(importErrorMessage(error)))
-                }
+            reminderScheduler.cancelAll()
+            try {
+                runCatching { backupManager.importFrom(uri, mode) }
+                    .onSuccess { count ->
+                        emitEvent(
+                            SnackbarEvent(appContext.getString(R.string.settings_import_success, count)),
+                        )
+                    }
+                    .onFailure { error ->
+                        emitEvent(SnackbarEvent(importErrorMessage(error)))
+                    }
+            } finally {
+                reminderScheduler.syncAll()
+            }
         }
     }
 
@@ -465,6 +472,7 @@ class AppViewModel(
         private val repository: NotesRepository,
         private val settingsStore: SettingsStore,
         private val backupManager: BackupManager,
+        private val reminderScheduler: ReminderScheduler,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -473,6 +481,7 @@ class AppViewModel(
                 repository = repository,
                 settingsStore = settingsStore,
                 backupManager = backupManager,
+                reminderScheduler = reminderScheduler,
             ) as T
         }
     }

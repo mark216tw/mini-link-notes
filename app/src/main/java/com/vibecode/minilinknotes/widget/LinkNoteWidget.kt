@@ -14,6 +14,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
@@ -30,13 +31,17 @@ import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.color.ColorProvider
 import androidx.glance.currentState
+import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
+import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
+import androidx.glance.layout.width
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -56,6 +61,7 @@ import com.vibecode.minilinknotes.ui.theme.WidgetLinkDay
 import com.vibecode.minilinknotes.ui.theme.WidgetLinkNight
 import com.vibecode.minilinknotes.ui.theme.WidgetTitleDay
 import com.vibecode.minilinknotes.ui.theme.WidgetTitleNight
+import com.vibecode.minilinknotes.util.TimeUtils
 import com.vibecode.minilinknotes.widget.configure.LinkNoteWidgetConfigureActivity
 
 class LinkNoteWidget : GlanceAppWidget() {
@@ -266,6 +272,28 @@ private fun LinkNoteWidgetContent(
                 ),
                 maxLines = 8,
             )
+        }
+
+        val reminderAt = note.reminderAt
+        if (note.reminderEnabled && reminderAt != null) {
+            Spacer(modifier = GlanceModifier.defaultWeight())
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    provider = ImageProvider(R.drawable.ic_notification),
+                    contentDescription = context.getString(R.string.reminder_content_description),
+                    modifier = GlanceModifier.size(14.dp),
+                    colorFilter = ColorFilter.tint(linkColor),
+                )
+                Spacer(modifier = GlanceModifier.width(4.dp))
+                Text(
+                    text = TimeUtils.formatDateTime(reminderAt),
+                    style = TextStyle(
+                        color = linkColor,
+                        fontSize = (9 * scale).sp,
+                    ),
+                    maxLines = 1,
+                )
+            }
         }
     }
 }

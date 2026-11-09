@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TagEntity::class,
         NoteTagCrossRef::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -34,6 +34,18 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE `notes` ADD COLUMN `imageSha256` TEXT")
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_notes_imageSha256` ON `notes` (`imageSha256`)",
+                )
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `notes` ADD COLUMN `reminderAt` INTEGER")
+                db.execSQL(
+                    "ALTER TABLE `notes` ADD COLUMN `reminderEnabled` INTEGER NOT NULL DEFAULT 0",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_notes_reminderEnabled` ON `notes` (`reminderEnabled`)",
                 )
             }
         }

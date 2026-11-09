@@ -48,6 +48,7 @@ data class AppSettings(
         Index("deletedAt"),
         Index("createdAt"),
         Index("imageSha256"),
+        Index("reminderEnabled"),
     ],
 )
 data class NoteEntity(
@@ -65,6 +66,8 @@ data class NoteEntity(
     val deletedAt: Long? = null,
     val titleFetchState: TitleFetchState = TitleFetchState.NONE,
     val titleEdited: Boolean = false,
+    val reminderAt: Long? = null,
+    val reminderEnabled: Boolean = false,
 )
 
 @Entity(
@@ -119,6 +122,11 @@ data class NoteWithTags(
 data class TagWithNoteCount(
     @Embedded val tag: TagEntity,
     @ColumnInfo(name = "noteCount") val noteCount: Int,
+)
+
+data class ReminderEntry(
+    @ColumnInfo(name = "id") val noteId: Long,
+    @ColumnInfo(name = "reminderAt") val reminderAt: Long,
 )
 
 class Converters {

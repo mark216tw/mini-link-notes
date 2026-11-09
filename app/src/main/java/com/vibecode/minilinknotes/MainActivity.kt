@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
                 repository = container.repository,
                 settingsStore = container.settingsStore,
                 backupManager = container.backupManager,
+                reminderScheduler = container.reminderScheduler,
             ),
         )[AppViewModel::class.java]
 
